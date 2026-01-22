@@ -1,5 +1,5 @@
+import React, { useRef, useState, useEffect } from 'react';
 import { motion, useMotionValue, useTransform, AnimatePresence, useSpring } from 'motion/react';
-import { useRef, useState, useEffect } from 'react';
 import { ArrowRight, X, Hand, Search } from 'lucide-react';
 
 // --- DATA & COLORS ---
@@ -208,7 +208,7 @@ export function Works() {
   return (
     <section
       id="portfolio"
-      className="relative w-full min-h-screen bg-[#F0F0F0] overflow-hidden flex flex-col perspective-[2000px] select-none"
+      className="relative w-full min-h-screen 2xl:min-h-0 2xl:h-auto bg-[#F0F0F0] overflow-hidden flex flex-col perspective-[2000px] select-none"
       onMouseDown={onMouseDown}
       onMouseMove={onMouseMove}
       onMouseUp={onMouseUp}
@@ -225,7 +225,7 @@ export function Works() {
       </div>
 
       {/* 3D SCENE CONTAINER - Takes remaining space */}
-      <div className="relative flex-1 w-full flex items-start justify-center cursor-grab active:cursor-grabbing pt-8 md:pt-12 pb-8 md:pb-12 2xl:pb-4">
+      <div className="relative flex-1 2xl:flex-none w-full flex items-start justify-center cursor-grab active:cursor-grabbing pt-8 md:pt-12 pb-8 md:pb-12 2xl:pt-8 2xl:pb-8">
 
         {/* ROTATING CYLINDER */}
         <motion.div
@@ -274,7 +274,7 @@ export function Works() {
       </AnimatePresence>
 
       {/* SEARCH BAR - Bottom position with more spacing */}
-      <div className="w-full px-6 pointer-events-auto z-20 shrink-0 pb-12 md:pb-16 2xl:pb-8">
+      <div className="w-full px-6 pointer-events-auto z-20 shrink-0 pb-12 md:pb-16 2xl:pt-12 2xl:pb-16">
         <div className="max-w-lg mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -463,7 +463,7 @@ function Spine3D({ project, angle, radius, onSelect }: { project: any, angle: nu
               writingMode: 'vertical-rl',
               color: project.textColor,
               textOrientation: 'mixed',
-              fontFamily: "'Montserrat', sans-serif"
+              fontFamily: "'Inter', sans-serif"
             }}
           >
             {project.title}

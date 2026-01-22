@@ -4,27 +4,34 @@ import { useState } from 'react';
 const services = [
   {
     title: '모바일 앱 개발',
-    description: 'iOS와 Android를 아우르는 네이티브 및 크로스플랫폼 모바일 애플리케이션을 제작합니다.'
+    description: 'iOS와 Android를 아우르는 네이티브 및 크로스플랫폼 모바일 애플리케이션을 제작합니다.',
+    mediaType: 'image'
   },
   {
     title: '웹개발',
-    description: '반응형 웹사이트부터 복잡한 웹 애플리케이션까지 최신 기술로 구현합니다.'
+    description: '반응형 웹사이트부터 복잡한 웹 애플리케이션까지 최신 기술로 구현합니다.',
+    mediaType: 'image'
   },
   {
     title: '자사몰 (이커머스)',
-    description: '온라인 쇼핑몰 구축부터 결제 시스템 연동까지 완벽한 이커머스 솔루션을 제공합니다.'
+    description: '온라인 쇼핑몰 구축부터 결제 시스템 연동까지 완벽한 이커머스 솔루션을 제공합니다.',
+    mediaType: 'image'
   },
   {
     title: '자동화 프로그램',
-    description: '반복 작업을 자동화하여 업무 효율성을 극대화하는 맞춤형 솔루션을 개발합니다.'
+    description: '반복 작업을 자동화하여 업무 효율성을 극대화하는 맞춤형 솔루션을 개발합니다.',
+    mediaType: 'video',
+    videoSrc: '/videos/자동화프로그램.mp4'
   },
   {
     title: '데스크톱 소프트웨어',
-    description: 'Windows, Mac, Linux를 지원하는 크로스플랫폼 데스크톱 애플리케이션을 제작합니다.'
+    description: 'Windows, Mac, Linux를 지원하는 크로스플랫폼 데스크톱 애플리케이션을 제작합니다.',
+    mediaType: 'image'
   },
   {
     title: '사내 프로그램',
-    description: '기업 맞춤형 내부 시스템과 관리 도구를 설계하고 구축합니다.'
+    description: '기업 맞춤형 내부 시스템과 관리 도구를 설계하고 구축합니다.',
+    mediaType: 'image'
   }
 ];
 
@@ -105,22 +112,35 @@ export function Expertise() {
                 transition={{ duration: 0.8, delay: index * 0.1 }}
                 whileHover={{ y: -8 }}
               >
-                {/* Image Frame */}
+                {/* Image/Video Frame */}
                 <motion.div
                   className="w-full aspect-[4/3] bg-[#1a1a1a] mb-6 overflow-hidden relative"
                   whileHover={{ scale: 1.02 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <motion.div
-                    className="absolute inset-0 bg-gradient-to-br from-gray-800 via-gray-900 to-black"
-                    initial={{ opacity: 0.8 }}
-                    whileHover={{ opacity: 1 }}
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-white/10 text-6xl md:text-7xl font-bold" style={{ fontFamily: "'Montserrat', sans-serif" }}>
-                      {String(index + 1).padStart(2, '0')}
-                    </span>
-                  </div>
+                  {service.mediaType === 'video' && service.videoSrc ? (
+                    <video
+                      src={service.videoSrc}
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                  ) : (
+                    <>
+                      <motion.div
+                        className="absolute inset-0 bg-gradient-to-br from-gray-800 via-gray-900 to-black"
+                        initial={{ opacity: 0.8 }}
+                        whileHover={{ opacity: 1 }}
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-white/10 text-6xl md:text-7xl font-bold" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+                          {String(index + 1).padStart(2, '0')}
+                        </span>
+                      </div>
+                    </>
+                  )}
                 </motion.div>
 
                 {/* Content */}

@@ -15,12 +15,12 @@ export function Contact() {
           viewport={{ once: true }}
           transition={{ duration: 1 }}
         >
-          <h2 className="text-[10vw] md:text-[10vw] font-bold leading-[0.9]" style={{ fontFamily: "'Montserrat', sans-serif" }}>Let's collaborate</h2>
-          <h2 className="text-[9vw] md:text-[9vw] font-medium leading-[0.9] tracking-tight mt-2">on your next big idea</h2>
+          <h2 className="text-[5vw] md:text-[5vw] 2xl:text-[6vw] font-bold leading-[0.9]" style={{ fontFamily: "'Montserrat', sans-serif" }}>Let's collaborate</h2>
+          <h2 className="text-[4.5vw] md:text-[4.5vw] 2xl:text-[5.5vw] font-medium leading-[0.9] tracking-tight mt-2">on your next big idea</h2>
         </motion.div>
 
         <motion.button
-          className="mt-12 md:mt-16 px-6 md:px-8 py-3 md:py-4 border border-black rounded-full uppercase text-xs md:text-sm tracking-widest hover:bg-black hover:text-white transition-colors duration-300"
+          className="mt-12 md:mt-16 px-6 md:px-8 2xl:px-12 py-3 md:py-4 2xl:py-6 border border-black rounded-full uppercase text-xs md:text-sm 2xl:text-lg tracking-widest hover:bg-black hover:text-white transition-colors duration-300"
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
         >
@@ -28,26 +28,26 @@ export function Contact() {
         </motion.button>
       </div>
 
-      <div className="w-full grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 text-[10px] md:text-xs font-sans uppercase tracking-wide border-t border-gray-200 pt-6 md:pt-8 mt-12 md:mt-20 relative z-10">
+      <div className="w-full grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 text-[10px] md:text-xs 2xl:text-base font-sans uppercase tracking-wide border-t border-gray-200 pt-6 md:pt-8 mt-12 md:mt-20 relative z-10">
         <div>
           <span className="text-gray-400 block mb-3 md:mb-4">Social</span>
           <ul className="space-y-2">
             <li className="flex items-center gap-2 cursor-pointer hover:underline">
-              <Github className="w-3 h-3 md:w-4 md:h-4" /> Github
+              <Github className="w-3 h-3 md:w-4 md:h-4 2xl:w-6 2xl:h-6" /> Github
             </li>
             <li className="flex items-center gap-2 cursor-pointer hover:underline">
-              <Linkedin className="w-3 h-3 md:w-4 md:h-4" /> LinkedIn
+              <Linkedin className="w-3 h-3 md:w-4 md:h-4 2xl:w-6 2xl:h-6" /> LinkedIn
             </li>
             <li className="flex items-center gap-2 cursor-pointer hover:underline">
-              <Instagram className="w-3 h-3 md:w-4 md:h-4" /> Instagram
+              <Instagram className="w-3 h-3 md:w-4 md:h-4 2xl:w-6 2xl:h-6" /> Instagram
             </li>
           </ul>
         </div>
         <div>
           <span className="text-gray-400 block mb-3 md:mb-4">Portfolio</span>
           <ul className="space-y-1">
-            <li className="flex items-center gap-1 cursor-pointer hover:underline">GitHub Projects <ArrowUpRight className="w-2 h-2 md:w-3 md:h-3" /></li>
-            <li className="flex items-center gap-1 cursor-pointer hover:underline">Live Demos <ArrowUpRight className="w-2 h-2 md:w-3 md:h-3" /></li>
+            <li className="flex items-center gap-1 cursor-pointer hover:underline">GitHub Projects <ArrowUpRight className="w-2 h-2 md:w-3 md:h-3 2xl:w-4 2xl:h-4" /></li>
+            <li className="flex items-center gap-1 cursor-pointer hover:underline">Live Demos <ArrowUpRight className="w-2 h-2 md:w-3 md:h-3 2xl:w-4 2xl:h-4" /></li>
           </ul>
         </div>
         <div>
@@ -63,19 +63,7 @@ export function Contact() {
         </div>
       </div>
 
-      <div className="hidden md:block absolute bottom-12 right-0 md:right-12 w-48 md:w-80 pointer-events-none opacity-80 z-0 mix-blend-multiply">
-        <motion.img
-          src="https://images.unsplash.com/photo-1534644107580-3a4dbd494a95?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkb2clMjBhcnQlMjBkcmFyYXRpbmd8ZW58MXx8fHwxNzY4NzEzNzgzfDA&ixlib=rb-4.1.0&q=80&w=1080"
-          alt="Decorative Element"
-          className="grayscale opacity-20"
-          initial={{ opacity: 0, x: 100 }}
-          whileInView={{ opacity: 0.2, x: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 1.5, ease: [0.16, 1, 0.3, 1] }}
-        />
-      </div>
-
-      <div className="absolute bottom-3 md:bottom-4 right-4 md:right-6 text-[9px] md:text-[10px] text-gray-400">
+      <div className="absolute bottom-3 md:bottom-4 right-4 md:right-6 text-[9px] md:text-[10px] 2xl:text-sm text-gray-400">
         ©2026
       </div>
     </section>

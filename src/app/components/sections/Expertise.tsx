@@ -65,16 +65,6 @@ const techStacks = [
     items: ['Google Ads API', 'Kakao API', 'Naver API', 'OpenAI API']
   },
   {
-    category: '인증',
-    categoryEn: 'Authentication',
-    items: ['JWT']
-  },
-  {
-    category: 'AI & LLM',
-    categoryEn: 'AI & LLM',
-    items: ['Claude', 'OpenAI', 'Gemini']
-  },
-  {
     category: '데브옵스 & 도구',
     categoryEn: 'DevOps & Tools',
     items: ['Vercel', 'Railway', 'Docker', 'GitHub Actions', 'Git', 'GitHub', 'npm', 'Cursor']
@@ -83,7 +73,6 @@ const techStacks = [
 
 export function Expertise() {
   const [showAllTechStacks, setShowAllTechStacks] = useState(false);
-  const visibleTechStacks = showAllTechStacks ? techStacks : techStacks.slice(0, 8);
 
   return (
     <section
@@ -100,15 +89,15 @@ export function Expertise() {
           viewport={{ once: true }}
           transition={{ duration: 1 }}
         >
-          <span className="text-[10px] md:text-xs uppercase tracking-widest mb-4 block text-gray-400">03 / Service</span>
-          <h2 className="text-4xl md:text-6xl lg:text-7xl font-bold" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+          <span className="text-[10px] md:text-xs 2xl:text-base uppercase tracking-widest mb-4 block text-gray-400">03 / Service</span>
+          <h2 className="text-4xl md:text-6xl lg:text-7xl 2xl:text-8xl font-bold" style={{ fontFamily: "'Montserrat', sans-serif" }}>
             Service
           </h2>
         </motion.div>
 
         {/* Services */}
         <div className="mb-20 md:mb-32">
-          <h3 className="text-lg md:text-xl font-bold mb-8 md:mb-12 uppercase tracking-wide" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+          <h3 className="text-lg md:text-xl 2xl:text-3xl font-bold mb-8 md:mb-12 uppercase tracking-wide" style={{ fontFamily: "'Montserrat', sans-serif" }}>
             SERVICE
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-12">
@@ -142,10 +131,10 @@ export function Expertise() {
 
                 {/* Content */}
                 <div className="border-l-2 border-black pl-6 transition-colors group-hover:border-gray-400">
-                  <h4 className="text-xl md:text-2xl font-bold mb-3" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+                  <h4 className="text-xl md:text-2xl 2xl:text-4xl font-bold mb-3" style={{ fontFamily: "'Montserrat', sans-serif" }}>
                     {service.title}
                   </h4>
-                  <p className="text-sm md:text-base leading-relaxed text-gray-600 group-hover:text-gray-900 transition-colors" style={{ fontFamily: "'Pretendard', sans-serif" }}>
+                  <p className="text-sm md:text-base 2xl:text-xl leading-relaxed text-gray-600 group-hover:text-gray-900 transition-colors" style={{ fontFamily: "'Pretendard', sans-serif" }}>
                     {service.description}
                   </p>
                 </div>
@@ -163,33 +152,34 @@ export function Expertise() {
             viewport={{ once: true }}
             transition={{ duration: 1 }}
           >
-            <span className="text-[10px] md:text-xs uppercase tracking-widest mb-4 block text-gray-400">04 / Tech Stack</span>
-            <h2 className="text-4xl md:text-6xl lg:text-7xl font-bold" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+            <span className="text-[10px] md:text-xs 2xl:text-base uppercase tracking-widest mb-4 block text-gray-400">04 / Tech Stack</span>
+            <h2 className="text-4xl md:text-6xl lg:text-7xl 2xl:text-8xl font-bold" style={{ fontFamily: "'Montserrat', sans-serif" }}>
               Tech Stack
             </h2>
           </motion.div>
 
-          <h3 className="text-lg md:text-xl font-bold mb-8 md:mb-12 uppercase tracking-wide" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+          <h3 className="text-lg md:text-xl 2xl:text-3xl font-bold mb-8 md:mb-12 uppercase tracking-wide" style={{ fontFamily: "'Montserrat', sans-serif" }}>
             TECH STACK
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12">
-            {visibleTechStacks.map((stack, index) => (
+            {techStacks.map((stack, index) => (
               <motion.div
                 key={stack.category}
+                className={`${!showAllTechStacks && index >= 4 ? 'hidden md:block' : ''}`}
                 initial={{ opacity: 0, y: 50 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.8, delay: index * 0.1 }}
               >
                 <div className="mb-4">
-                  <h4 className="text-sm md:text-base font-bold text-gray-900" style={{ fontFamily: "'Pretendard', sans-serif" }}>
+                  <h4 className="text-sm md:text-base 2xl:text-xl font-bold text-gray-900" style={{ fontFamily: "'Pretendard', sans-serif" }}>
                     {stack.category}
                   </h4>
-                  <p className="text-[10px] md:text-xs uppercase tracking-widest text-gray-400" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+                  <p className="text-[10px] md:text-xs 2xl:text-sm uppercase tracking-widest text-gray-400" style={{ fontFamily: "'Montserrat', sans-serif" }}>
                     {stack.categoryEn}
                   </p>
                 </div>
-                <ul className="space-y-2 text-sm md:text-base" style={{ fontFamily: "'Pretendard', sans-serif" }}>
+                <ul className="space-y-2 text-sm md:text-base 2xl:text-xl" style={{ fontFamily: "'Pretendard', sans-serif" }}>
                   {stack.items.map((item) => (
                     <li key={item} className="text-gray-700">
                       {item}
@@ -202,7 +192,7 @@ export function Expertise() {
 
           {!showAllTechStacks && (
             <motion.div
-              className="mt-12 text-center"
+              className="mt-12 text-center md:hidden"
               initial={{ opacity: 0 }}
               whileInView={{ opacity: 1 }}
               viewport={{ once: true }}

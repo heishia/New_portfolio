@@ -10,7 +10,7 @@ export function About() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 lg:gap-32">
 
           <div className="flex flex-col justify-between h-full order-2 md:order-1">
-            <span className="text-[10px] md:text-xs uppercase tracking-widest mb-8 md:mb-12 block">02 / About</span>
+            <span className="text-[10px] md:text-xs 2xl:text-base uppercase tracking-widest mb-8 md:mb-12 block">02 / About</span>
 
             <div className="relative">
               <div className="w-full aspect-[3/4] bg-gray-200 overflow-hidden">
@@ -24,7 +24,7 @@ export function About() {
 
           <div className="flex flex-col justify-center order-1 md:order-2">
             <motion.h2
-              className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-8 md:mb-12"
+              className="text-3xl md:text-4xl lg:text-5xl 2xl:text-7xl font-bold text-gray-900 mb-8 md:mb-12"
               style={{ fontFamily: 'Montserrat, sans-serif' }}
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -35,7 +35,7 @@ export function About() {
             </motion.h2>
 
             <motion.p
-              className="text-base md:text-lg lg:text-xl font-light leading-relaxed text-gray-600"
+              className="text-base md:text-lg lg:text-xl 2xl:text-3xl font-light leading-relaxed text-gray-600"
               initial={{ opacity: 0, y: 50 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}

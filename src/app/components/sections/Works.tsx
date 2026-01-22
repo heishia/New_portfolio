@@ -219,17 +219,17 @@ export function Works() {
     >
       {/* Background/Context - Separated Top Block */}
       <div className="w-full text-center pointer-events-none z-10 shrink-0 pt-12 md:pt-16 pb-4 md:pb-6">
-        <h2 className="text-[12vw] md:text-[8vw] font-bold text-[#E5E5E5] leading-none tracking-tighter">
+        <h2 className="text-[12vw] md:text-[8vw] 2xl:text-[5vw] font-bold text-[#E5E5E5] leading-none tracking-tighter" style={{ fontFamily: "'Inter', sans-serif" }}>
           PORTFOLIO
         </h2>
       </div>
 
       {/* 3D SCENE CONTAINER - Takes remaining space */}
-      <div className="relative flex-1 w-full flex items-start justify-center cursor-grab active:cursor-grabbing pt-8 md:pt-12 pb-8 md:pb-12">
+      <div className="relative flex-1 w-full flex items-start justify-center cursor-grab active:cursor-grabbing pt-8 md:pt-12 pb-8 md:pb-12 2xl:pb-4">
 
         {/* ROTATING CYLINDER */}
         <motion.div
-          className="relative [transform-style:preserve-3d] h-[55vh] md:h-[60vh] w-[60px] pointer-events-none"
+          className="relative [transform-style:preserve-3d] h-[55vh] md:h-[60vh] 2xl:h-[45vh] w-[60px] pointer-events-none"
           style={{
             rotateY: smoothRotation,
             scale: isMobile ? 1.5 : 1
@@ -267,14 +267,14 @@ export function Works() {
             exit={{ opacity: 0 }}
             className="absolute bottom-24 md:bottom-28 left-1/2 -translate-x-1/2 flex items-center gap-3 pointer-events-none text-neutral-400"
           >
-            <Hand className="w-5 h-5 animate-pulse" />
-            <span className="text-xs font-mono uppercase tracking-widest">Drag to Rotate</span>
+            <Hand className="w-5 h-5 2xl:w-7 2xl:h-7 animate-pulse" />
+            <span className="text-xs 2xl:text-base font-mono uppercase tracking-widest">Drag to Rotate</span>
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* SEARCH BAR - Bottom position with more spacing */}
-      <div className="w-full px-6 pointer-events-auto z-20 shrink-0 pb-12 md:pb-16">
+      <div className="w-full px-6 pointer-events-auto z-20 shrink-0 pb-12 md:pb-16 2xl:pb-8">
         <div className="max-w-lg mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -291,7 +291,7 @@ export function Works() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search"
-                className="w-full pl-14 pr-14 py-5 md:py-6 bg-transparent text-[15px] placeholder:text-neutral-400 focus:outline-none"
+                className="w-full pl-14 pr-14 py-5 md:py-6 2xl:py-5 bg-transparent text-[15px] 2xl:text-xl placeholder:text-neutral-400 focus:outline-none"
                 style={{ fontFamily: "'Inter', sans-serif" }}
                 onMouseDown={(e) => e.stopPropagation()}
                 onMouseMove={(e) => e.stopPropagation()}
@@ -330,7 +330,7 @@ export function Works() {
               <button
                 key={tag}
                 onClick={() => setSearchQuery(tag)}
-                className="px-4 py-2 text-xs md:text-sm font-mono uppercase tracking-wider bg-white/60 hover:bg-white border border-black/10 hover:border-black/20 rounded-full transition-all hover:scale-105"
+                className="px-4 py-2 2xl:px-6 2xl:py-3 text-xs md:text-sm 2xl:text-base font-mono uppercase tracking-wider bg-white/60 hover:bg-white border border-black/10 hover:border-black/20 rounded-full transition-all hover:scale-105"
                 onMouseDown={(e) => e.stopPropagation()}
                 onMouseMove={(e) => e.stopPropagation()}
                 onMouseUp={(e) => e.stopPropagation()}

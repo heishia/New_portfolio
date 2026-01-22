@@ -240,7 +240,7 @@ export function Intro({ onComplete }: IntroProps) {
       <div className="relative w-full h-screen flex items-center justify-center">
 
         {/* 800px FIXED STAGE - scaled down for smaller screens */}
-        <div className="intro-stage relative w-[800px] h-[400px] flex items-center justify-center scale-[0.4] md:scale-[0.5] xl:scale-[0.75] 2xl:scale-100">
+        <div className="intro-stage relative w-[800px] h-[400px] flex items-center justify-center scale-[0.25] md:scale-[0.35] xl:scale-[0.4] 2xl:scale-[0.5]">
 
           {/* PPOP Layer */}
           <motion.div

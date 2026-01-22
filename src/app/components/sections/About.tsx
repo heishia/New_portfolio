@@ -4,14 +4,24 @@ export function About() {
   return (
     <section
       id="about"
-      className="min-h-screen bg-[#F7F7F7] px-4 md:px-6 py-20 md:py-32 lg:py-48 flex items-center justify-center"
+      className="min-h-screen bg-[#F7F7F7] px-4 md:px-6 py-20 md:py-32 lg:py-48"
     >
       <div className="max-w-4xl mx-auto">
+        {/* Header - Separated */}
+        <motion.div
+          className="mb-16 md:mb-24"
+          initial={{ opacity: 0, y: 50 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 1 }}
+        >
+          <span className="text-[30px] md:text-4xl 2xl:text-5xl uppercase tracking-widest block text-gray-400">02 / About</span>
+        </motion.div>
+
+        {/* Content Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 lg:gap-32">
 
-          <div className="flex flex-col justify-between h-full order-2 md:order-1">
-            <span className="text-[10px] md:text-xs 2xl:text-base uppercase tracking-widest mb-8 md:mb-12 block">02 / About</span>
-
+          <div className="flex flex-col justify-center order-2 md:order-1">
             <div className="relative">
               <div className="w-full aspect-[3/4] bg-gray-200 overflow-hidden">
                 {/* Placeholder for About Image or just a solid color block as per minimalist style */}

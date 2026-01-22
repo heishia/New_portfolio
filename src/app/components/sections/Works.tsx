@@ -256,22 +256,22 @@ export function Works() {
           })}
         </motion.div>
 
-      </div>
+        {/* DRAG HINT - Positioned over cylinder */}
+        <AnimatePresence>
+          {showHint && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-3 pointer-events-none text-neutral-400 z-30"
+            >
+              <Hand className="w-5 h-5 2xl:w-7 2xl:h-7 animate-pulse" />
+              <span className="text-xs 2xl:text-base font-mono uppercase tracking-widest">Drag to Rotate</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-      {/* DRAG HINT */}
-      <AnimatePresence>
-        {showHint && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute bottom-24 md:bottom-28 left-1/2 -translate-x-1/2 flex items-center gap-3 pointer-events-none text-neutral-400"
-          >
-            <Hand className="w-5 h-5 2xl:w-7 2xl:h-7 animate-pulse" />
-            <span className="text-xs 2xl:text-base font-mono uppercase tracking-widest">Drag to Rotate</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      </div>
 
       {/* SEARCH BAR - Bottom position with more spacing */}
       <div className="w-full px-6 pointer-events-auto z-20 shrink-0 pb-12 md:pb-16 2xl:pt-12 2xl:pb-16">

@@ -89,17 +89,11 @@ export function Expertise() {
           viewport={{ once: true }}
           transition={{ duration: 1 }}
         >
-          <span className="text-[10px] md:text-xs 2xl:text-base uppercase tracking-widest mb-4 block text-gray-400">03 / Service</span>
-          <h2 className="text-4xl md:text-6xl lg:text-7xl 2xl:text-8xl font-bold" style={{ fontFamily: "'Montserrat', sans-serif" }}>
-            Service
-          </h2>
+          <span className="text-[30px] md:text-4xl 2xl:text-5xl uppercase tracking-widest mb-4 block text-gray-400">03 / Service</span>
         </motion.div>
 
         {/* Services */}
         <div className="mb-20 md:mb-32">
-          <h3 className="text-lg md:text-xl 2xl:text-3xl font-bold mb-8 md:mb-12 uppercase tracking-wide" style={{ fontFamily: "'Montserrat', sans-serif" }}>
-            SERVICE
-          </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-12">
             {services.map((service, index) => (
               <motion.div
@@ -152,15 +146,9 @@ export function Expertise() {
             viewport={{ once: true }}
             transition={{ duration: 1 }}
           >
-            <span className="text-[10px] md:text-xs 2xl:text-base uppercase tracking-widest mb-4 block text-gray-400">04 / Tech Stack</span>
-            <h2 className="text-4xl md:text-6xl lg:text-7xl 2xl:text-8xl font-bold" style={{ fontFamily: "'Montserrat', sans-serif" }}>
-              Tech Stack
-            </h2>
+            <span className="text-[30px] md:text-4xl 2xl:text-5xl uppercase tracking-widest mb-4 block text-gray-400">04 / Tech Stack</span>
           </motion.div>
 
-          <h3 className="text-lg md:text-xl 2xl:text-3xl font-bold mb-8 md:mb-12 uppercase tracking-wide" style={{ fontFamily: "'Montserrat', sans-serif" }}>
-            TECH STACK
-          </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12">
             {techStacks.map((stack, index) => (
               <motion.div

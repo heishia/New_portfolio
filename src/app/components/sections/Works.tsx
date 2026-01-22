@@ -4,6 +4,7 @@ import { ArrowRight, X, Hand, Search, RefreshCw, ExternalLink, Github, Eye, Star
 
 // --- API Configuration ---
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+const API_SECRET = import.meta.env.VITE_API_SECRET || '';
 
 // --- Types ---
 interface Repository {
@@ -373,8 +374,14 @@ export function Works() {
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
+      const headers: Record<string, string> = {};
+      if (API_SECRET) {
+        headers['Authorization'] = `Bearer ${API_SECRET}`;
+      }
+      
       const response = await fetch(`${API_BASE_URL}/api/repos/refresh`, {
         method: 'POST',
+        headers,
       });
       
       if (!response.ok) throw new Error('Failed to refresh');

@@ -157,6 +157,21 @@ class RepositoryService:
             row = await conn.fetchrow("SELECT COUNT(*) as count FROM repositories")
             return row["count"] if row else 0
     
+    def _parse_json_field(self, value, default=None):
+        """Parse JSON field from database (handles both string and already parsed values)."""
+        if default is None:
+            default = []
+        if value is None:
+            return default
+        if isinstance(value, (list, dict)):
+            return value
+        if isinstance(value, str):
+            try:
+                return json.loads(value)
+            except (json.JSONDecodeError, TypeError):
+                return default
+        return default
+    
     def _row_to_repo(self, row) -> Repository:
         """Convert database row to Repository model."""
         return Repository(
@@ -172,15 +187,15 @@ class RepositoryService:
             github_updated_at=row["github_updated_at"],
             title=row["title"],
             subtitle=row["subtitle"],
-            project_type=row["project_type"] or [],
+            project_type=self._parse_json_field(row["project_type"]),
             detailed_description=row["detailed_description"],
-            features=row["features"] or [],
-            technologies=row["technologies"] or [],
-            screenshots=row["screenshots"] or [],
+            features=self._parse_json_field(row["features"]),
+            technologies=self._parse_json_field(row["technologies"]),
+            screenshots=self._parse_json_field(row["screenshots"]),
             challenges=row["challenges"],
             achievements=row["achievements"],
             priority=row["priority"] or 0,
-            roles=row["roles"] or [],
+            roles=self._parse_json_field(row["roles"]),
             client_name=row["client_name"],
             status=row["status"] or "completed",
             start_date=row["start_date"],

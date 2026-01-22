@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { motion, useMotionValue, AnimatePresence, useSpring } from 'motion/react';
-import { ArrowRight, X, Hand, Search, RefreshCw, ExternalLink, Github } from 'lucide-react';
+import { ArrowRight, X, Hand, Search, RefreshCw, ExternalLink, Github, Eye } from 'lucide-react';
 
 // --- API Configuration ---
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
@@ -28,6 +28,8 @@ interface Repository {
   status: string;
   demo_url: string | null;
   has_portfolio_meta: boolean;
+  start_date: string | null;
+  github_created_at: string | null;
 }
 
 interface ProjectDisplay {
@@ -37,6 +39,7 @@ interface ProjectDisplay {
   category: string;
   image: string;
   year: string;
+  yearMonth: string;
   displayNumber: number;
   spineColor: string;
   textColor: string;
@@ -47,6 +50,9 @@ interface ProjectDisplay {
   technologies: Array<{ name: string; category: string }>;
   features: Array<{ title: string; description: string }>;
   detailed_description: string | null;
+  // Tags for filtering/display
+  project_type: string[];
+  topics: string[];
 }
 
 // --- Fallback Data (shown when API unavailable) ---
@@ -58,6 +64,7 @@ const fallbackProjects: ProjectDisplay[] = [
     category: "Portfolio",
     image: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=800",
     year: "2024",
+    yearMonth: "2024.01",
     displayNumber: 1,
     spineColor: "#282828",
     textColor: "#FFFFFF",
@@ -67,6 +74,8 @@ const fallbackProjects: ProjectDisplay[] = [
     technologies: [],
     features: [],
     detailed_description: null,
+    project_type: [],
+    topics: [],
   }
 ];
 
@@ -124,8 +133,18 @@ const transformReposToProjects = (repos: Repository[]): ProjectDisplay[] => {
     // Determine category from project_type or language
     const category = repo.project_type?.[0] || repo.language || 'Project';
     
-    // Extract year from repo creation or use current year
-    const year = new Date().getFullYear().toString();
+    // Extract year and year.month from start_date or github_created_at
+    const getDateInfo = () => {
+      const dateSource = repo.start_date || repo.github_created_at;
+      const date = dateSource ? new Date(dateSource) : new Date();
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      return {
+        year: y.toString(),
+        yearMonth: `${y}.${m}`
+      };
+    };
+    const { year, yearMonth } = getDateInfo();
     
     displayItems.push({
       id: repo.id,
@@ -134,6 +153,7 @@ const transformReposToProjects = (repos: Repository[]): ProjectDisplay[] => {
       category: category.charAt(0).toUpperCase() + category.slice(1),
       image: imageUrl,
       year,
+      yearMonth,
       displayNumber: i + 1,
       spineColor,
       textColor,
@@ -143,6 +163,8 @@ const transformReposToProjects = (repos: Repository[]): ProjectDisplay[] => {
       technologies: repo.technologies || [],
       features: repo.features || [],
       detailed_description: repo.detailed_description,
+      project_type: repo.project_type || [],
+      topics: repo.topics || [],
     });
   }
   
@@ -173,18 +195,90 @@ export function Works() {
   const [activeProject, setActiveProject] = useState<ProjectDisplay | null>(null);
   const [showHint, setShowHint] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showDetail, setShowDetail] = useState(false);
 
   // Computed projects
   const projects = transformReposToProjects(repositories);
   
-  // Filtered projects based on search
-  const filteredProjects = searchQuery.trim()
-    ? projects.filter(p =>
-        p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.technologies.some(t => t.name.toLowerCase().includes(searchQuery.toLowerCase()))
-      )
-    : projects;
+  // Extract unique tags for quick filters (tech stack + project types)
+  const quickFilterTags = React.useMemo(() => {
+    const tagCounts = new Map<string, number>();
+    
+    repositories.forEach(repo => {
+      // Count project types
+      repo.project_type?.forEach(type => {
+        const normalizedType = type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
+        tagCounts.set(normalizedType, (tagCounts.get(normalizedType) || 0) + 1);
+      });
+      
+      // Count popular technologies
+      repo.technologies?.forEach(tech => {
+        tagCounts.set(tech.name, (tagCounts.get(tech.name) || 0) + 1);
+      });
+      
+      // Count GitHub topics
+      repo.topics?.forEach(topic => {
+        const normalizedTopic = topic.charAt(0).toUpperCase() + topic.slice(1).toLowerCase();
+        tagCounts.set(normalizedTopic, (tagCounts.get(normalizedTopic) || 0) + 1);
+      });
+    });
+    
+    // Sort by count and take top 8
+    return Array.from(tagCounts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8)
+      .map(([tag]) => tag);
+  }, [repositories]);
+  
+  // Filtered projects based on search (enhanced to search more fields)
+  const filteredProjects = React.useMemo(() => {
+    if (!searchQuery.trim()) return projects;
+    
+    const query = searchQuery.toLowerCase().trim();
+    
+    // Find matching repository IDs
+    const matchingRepoIds = new Set<number>();
+    
+    repositories.forEach(repo => {
+      const searchFields = [
+        // Title and names
+        repo.title,
+        repo.name,
+        repo.subtitle,
+        // Descriptions (content search)
+        repo.description,
+        repo.detailed_description,
+        // Project types (output tags)
+        ...repo.project_type,
+        // GitHub topics
+        ...repo.topics,
+        // Technology names
+        ...repo.technologies.map(t => t.name),
+        // Technology categories
+        ...repo.technologies.map(t => t.category),
+        // Feature titles and descriptions
+        ...repo.features.map(f => f.title),
+        ...repo.features.map(f => f.description),
+        // Language
+        repo.language,
+        // Challenges and achievements
+        repo.challenges,
+        repo.achievements,
+        // Status
+        repo.status,
+      ];
+      
+      const matches = searchFields.some(field => 
+        field && field.toLowerCase().includes(query)
+      );
+      
+      if (matches) {
+        matchingRepoIds.add(repo.id);
+      }
+    });
+    
+    return projects.filter(p => matchingRepoIds.has(p.id));
+  }, [searchQuery, projects, repositories]);
 
   // Fetch repositories from API
   const fetchRepositories = useCallback(async () => {
@@ -235,6 +329,79 @@ export function Works() {
   useEffect(() => {
     fetchRepositories();
   }, [fetchRepositories]);
+
+  // Keyboard navigation for modal
+  useEffect(() => {
+    if (!activeProject) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Get unique repositories (not the repeated display items)
+      const uniqueRepos = repositories;
+      if (uniqueRepos.length === 0) return;
+
+      // Find current repository index
+      const currentIndex = uniqueRepos.findIndex(repo => repo.id === activeProject.id);
+      if (currentIndex === -1) return;
+
+      let nextIndex: number | null = null;
+
+      if (e.key === 'ArrowLeft') {
+        // Previous repo (wrap to end if at start)
+        nextIndex = currentIndex === 0 ? uniqueRepos.length - 1 : currentIndex - 1;
+      } else if (e.key === 'ArrowRight') {
+        // Next repo (wrap to start if at end)
+        nextIndex = currentIndex === uniqueRepos.length - 1 ? 0 : currentIndex + 1;
+      } else if (e.key === 'Escape') {
+        setActiveProject(null);
+        return;
+      }
+
+      if (nextIndex !== null) {
+        const nextRepo = uniqueRepos[nextIndex];
+        const { spineColor, textColor } = generateColorData(nextIndex);
+        
+        // Get first screenshot URL or use placeholder
+        const mainScreenshot = nextRepo.screenshots?.[0];
+        const imageUrl = mainScreenshot?.url || 
+          `https://opengraph.githubassets.com/1/${nextRepo.full_name}`;
+        
+        // Determine category from project_type or language
+        const category = nextRepo.project_type?.[0] || nextRepo.language || 'Project';
+        
+        // Get year and year.month from start_date or github_created_at
+        const dateSource = nextRepo.start_date || nextRepo.github_created_at;
+        const date = dateSource ? new Date(dateSource) : new Date();
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const year = y.toString();
+        const yearMonth = `${y}.${m}`;
+        
+        setActiveProject({
+          id: nextRepo.id,
+          uniqueId: `${nextRepo.id}-nav`,
+          title: nextRepo.title || nextRepo.name,
+          category: category.charAt(0).toUpperCase() + category.slice(1),
+          image: imageUrl,
+          year,
+          yearMonth,
+          displayNumber: nextIndex + 1,
+          spineColor,
+          textColor,
+          description: nextRepo.description,
+          html_url: nextRepo.html_url,
+          demo_url: nextRepo.demo_url,
+          technologies: nextRepo.technologies || [],
+          features: nextRepo.features || [],
+          detailed_description: nextRepo.detailed_description,
+          project_type: nextRepo.project_type || [],
+          topics: nextRepo.topics || [],
+        });
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeProject, repositories]);
 
   // Screen size detection
   useEffect(() => {
@@ -384,7 +551,7 @@ export function Works() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search"
+                placeholder="Search by tech, tags, or content..."
                 className="w-full pl-14 pr-24 py-5 md:py-6 2xl:py-5 bg-transparent text-[15px] 2xl:text-xl placeholder:text-neutral-400 focus:outline-none"
                 style={{ fontFamily: "'Inter', sans-serif" }}
                 onMouseDown={(e) => e.stopPropagation()}
@@ -428,28 +595,55 @@ export function Works() {
             </div>
           </motion.div>
 
-          {/* Quick Filter Tags */}
+          {/* Quick Filter Tags - Dynamic from actual data */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.7, duration: 0.8 }}
             className="flex flex-wrap gap-2 justify-center mt-4"
           >
-            {['Web', 'Mobile', 'Desktop', 'Automation'].map((tag) => (
-              <button
-                key={tag}
-                onClick={() => setSearchQuery(tag)}
-                className="px-4 py-2 2xl:px-6 2xl:py-3 text-xs md:text-sm 2xl:text-base font-mono uppercase tracking-wider bg-white/60 hover:bg-white border border-black/10 hover:border-black/20 rounded-full transition-all hover:scale-105"
-                onMouseDown={(e) => e.stopPropagation()}
-                onMouseMove={(e) => e.stopPropagation()}
-                onMouseUp={(e) => e.stopPropagation()}
-                onTouchStart={(e) => e.stopPropagation()}
-                onTouchMove={(e) => e.stopPropagation()}
-                onTouchEnd={(e) => e.stopPropagation()}
-              >
-                {tag}
-              </button>
-            ))}
+            {quickFilterTags.length > 0 ? (
+              quickFilterTags.map((tag) => (
+                <button
+                  key={tag}
+                  onClick={() => setSearchQuery(searchQuery === tag ? '' : tag)}
+                  className={`px-4 py-2 2xl:px-6 2xl:py-3 text-xs md:text-sm 2xl:text-base font-mono uppercase tracking-wider rounded-full transition-all hover:scale-105 ${
+                    searchQuery.toLowerCase() === tag.toLowerCase()
+                      ? 'bg-black text-white border border-black'
+                      : 'bg-white/60 hover:bg-white border border-black/10 hover:border-black/20'
+                  }`}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onMouseMove={(e) => e.stopPropagation()}
+                  onMouseUp={(e) => e.stopPropagation()}
+                  onTouchStart={(e) => e.stopPropagation()}
+                  onTouchMove={(e) => e.stopPropagation()}
+                  onTouchEnd={(e) => e.stopPropagation()}
+                >
+                  {tag}
+                </button>
+              ))
+            ) : (
+              // Fallback tags when no data loaded
+              ['Web', 'Mobile', 'Desktop', 'Automation'].map((tag) => (
+                <button
+                  key={tag}
+                  onClick={() => setSearchQuery(searchQuery === tag ? '' : tag)}
+                  className={`px-4 py-2 2xl:px-6 2xl:py-3 text-xs md:text-sm 2xl:text-base font-mono uppercase tracking-wider rounded-full transition-all hover:scale-105 ${
+                    searchQuery.toLowerCase() === tag.toLowerCase()
+                      ? 'bg-black text-white border border-black'
+                      : 'bg-white/60 hover:bg-white border border-black/10 hover:border-black/20'
+                  }`}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onMouseMove={(e) => e.stopPropagation()}
+                  onMouseUp={(e) => e.stopPropagation()}
+                  onTouchStart={(e) => e.stopPropagation()}
+                  onTouchMove={(e) => e.stopPropagation()}
+                  onTouchEnd={(e) => e.stopPropagation()}
+                >
+                  {tag}
+                </button>
+              ))
+            )}
           </motion.div>
 
           {/* No Results Message */}
@@ -482,7 +676,7 @@ export function Works() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-12 bg-black/60 backdrop-blur-sm"
-            onClick={() => setActiveProject(null)}
+            onClick={() => { setActiveProject(null); setShowDetail(false); }}
             onMouseDown={(e) => e.stopPropagation()}
             onMouseMove={(e) => e.stopPropagation()}
             onMouseUp={(e) => e.stopPropagation()}
@@ -506,6 +700,7 @@ export function Works() {
                   onClick={(e) => {
                     e.stopPropagation();
                     setActiveProject(null);
+                    setShowDetail(false);
                   }}
                   className="absolute top-4 left-4 md:hidden w-10 h-10 bg-white/20 backdrop-blur rounded-full flex items-center justify-center text-white z-20"
                 >
@@ -519,6 +714,7 @@ export function Works() {
                   onClick={(e) => {
                     e.stopPropagation();
                     setActiveProject(null);
+                    setShowDetail(false);
                   }}
                   className="absolute top-6 right-6 hidden md:flex w-10 h-10 bg-neutral-100 hover:bg-neutral-200 rounded-full items-center justify-center transition-colors z-20 cursor-pointer"
                 >
@@ -532,15 +728,43 @@ export function Works() {
                   <h3 className="text-3xl font-bold mb-2" style={{ fontFamily: "'Montserrat', sans-serif" }}>
                     {activeProject.title}
                   </h3>
-                  <p className="text-neutral-500 font-mono text-sm">{activeProject.year}</p>
+                  <p className="text-neutral-500 font-mono text-sm">{activeProject.yearMonth}</p>
+                  
+                  {/* Project Tags (Topics + Project Type) */}
+                  {(activeProject.project_type.length > 0 || activeProject.topics.length > 0) && (
+                    <div className="flex flex-wrap gap-1 mt-3">
+                      {activeProject.project_type.map((type, i) => (
+                        <button
+                          key={`type-${i}`}
+                          onClick={() => { setActiveProject(null); setSearchQuery(type); }}
+                          className="px-2 py-0.5 text-[10px] bg-black text-white rounded hover:bg-neutral-800 cursor-pointer transition-colors"
+                        >
+                          {type}
+                        </button>
+                      ))}
+                      {activeProject.topics.slice(0, 3).map((topic, i) => (
+                        <button
+                          key={`topic-${i}`}
+                          onClick={() => { setActiveProject(null); setSearchQuery(topic); }}
+                          className="px-2 py-0.5 text-[10px] bg-neutral-200 text-neutral-600 rounded hover:bg-neutral-300 cursor-pointer transition-colors"
+                        >
+                          {topic}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                   
                   {/* Technologies */}
                   {activeProject.technologies.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-4">
+                    <div className="flex flex-wrap gap-1 mt-2">
                       {activeProject.technologies.slice(0, 5).map((tech, i) => (
-                        <span key={i} className="px-2 py-0.5 text-[10px] bg-neutral-50 text-neutral-500 rounded">
+                        <button
+                          key={i}
+                          onClick={() => { setActiveProject(null); setSearchQuery(tech.name); }}
+                          className="px-2 py-0.5 text-[10px] bg-neutral-50 text-neutral-500 rounded hover:bg-neutral-100 cursor-pointer transition-colors"
+                        >
                           {tech.name}
-                        </span>
+                        </button>
                       ))}
                     </div>
                   )}
@@ -554,6 +778,14 @@ export function Works() {
                   
                   {/* Action Buttons */}
                   <div className="flex flex-col gap-2">
+                    <button
+                      onClick={() => setShowDetail(!showDetail)}
+                      className="w-full py-4 bg-neutral-100 text-neutral-800 text-sm font-mono uppercase tracking-widest hover:bg-neutral-200 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Eye className="w-4 h-4" />
+                      {showDetail ? 'Hide Detail' : 'View Detail'}
+                    </button>
+                    
                     <a 
                       href={activeProject.html_url}
                       target="_blank"
@@ -577,6 +809,48 @@ export function Works() {
                       </a>
                     )}
                   </div>
+                  
+                  {/* Expanded Detail Section */}
+                  <AnimatePresence>
+                    {showDetail && activeProject.features.length > 0 && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="pt-4 mt-4 border-t border-neutral-100">
+                          <h4 className="text-xs font-mono uppercase tracking-wider text-neutral-500 mb-3">Features</h4>
+                          <ul className="space-y-2">
+                            {activeProject.features.map((feature, i) => (
+                              <li key={i} className="text-sm text-neutral-600">
+                                <span className="font-medium">{feature.title}</span>
+                                {feature.description && (
+                                  <span className="text-neutral-400"> — {feature.description}</span>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                  
+                  {/* Navigation Info */}
+                  {repositories.length > 1 && (
+                    <div className="mt-6 pt-4 border-t border-neutral-100">
+                      <div className="flex items-center justify-between text-xs text-neutral-400">
+                        <span className="font-mono">
+                          {repositories.findIndex(repo => repo.id === activeProject.id) + 1} / {repositories.length}
+                        </span>
+                        <span className="hidden md:flex items-center gap-2">
+                          <kbd className="px-2 py-1 bg-neutral-100 rounded text-[10px]">←</kbd>
+                          <kbd className="px-2 py-1 bg-neutral-100 rounded text-[10px]">→</kbd>
+                          <span>to navigate</span>
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </motion.div>

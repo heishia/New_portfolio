@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { motion, useMotionValue, AnimatePresence, useSpring } from 'motion/react';
-import { ArrowRight, X, Hand, Search, RefreshCw, ExternalLink, Github, Eye } from 'lucide-react';
+import { ArrowRight, X, Hand, Search, RefreshCw, ExternalLink, Github, Eye, Star, GitFork, Calendar, ChevronLeft, ChevronRight, Code2, Database, Globe, Layers, Server, Smartphone, Play, Image as ImageIcon } from 'lucide-react';
 
 // --- API Configuration ---
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
@@ -36,6 +36,7 @@ interface ProjectDisplay {
   id: number;
   uniqueId: string;
   title: string;
+  subtitle: string | null;
   category: string;
   image: string;
   year: string;
@@ -47,12 +48,19 @@ interface ProjectDisplay {
   description: string | null;
   html_url: string;
   demo_url: string | null;
-  technologies: Array<{ name: string; category: string }>;
+  technologies: Array<{ name: string; category: string; version?: string }>;
   features: Array<{ title: string; description: string }>;
   detailed_description: string | null;
   // Tags for filtering/display
   project_type: string[];
   topics: string[];
+  // Additional fields for detail page
+  screenshots: Array<{ file: string; caption: string; url?: string; type?: string }>;
+  challenges: string | null;
+  achievements: string | null;
+  stargazers_count: number;
+  language: string | null;
+  full_name: string;
 }
 
 // --- Fallback Data (shown when API unavailable) ---
@@ -61,6 +69,7 @@ const fallbackProjects: ProjectDisplay[] = [
     id: 1,
     uniqueId: "fallback-1",
     title: "Loading...",
+    subtitle: null,
     category: "Portfolio",
     image: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=800",
     year: "2024",
@@ -76,6 +85,12 @@ const fallbackProjects: ProjectDisplay[] = [
     detailed_description: null,
     project_type: [],
     topics: [],
+    screenshots: [],
+    challenges: null,
+    achievements: null,
+    stargazers_count: 0,
+    language: null,
+    full_name: "loading",
   }
 ];
 
@@ -150,6 +165,7 @@ const transformReposToProjects = (repos: Repository[]): ProjectDisplay[] => {
       id: repo.id,
       uniqueId: `${repo.id}-${i}`,
       title: repo.title || repo.name,
+      subtitle: repo.subtitle,
       category: category.charAt(0).toUpperCase() + category.slice(1),
       image: imageUrl,
       year,
@@ -165,6 +181,12 @@ const transformReposToProjects = (repos: Repository[]): ProjectDisplay[] => {
       detailed_description: repo.detailed_description,
       project_type: repo.project_type || [],
       topics: repo.topics || [],
+      screenshots: repo.screenshots || [],
+      challenges: repo.challenges,
+      achievements: repo.achievements,
+      stargazers_count: repo.stargazers_count,
+      language: repo.language,
+      full_name: repo.full_name,
     });
   }
   
@@ -380,6 +402,7 @@ export function Works() {
           id: nextRepo.id,
           uniqueId: `${nextRepo.id}-nav`,
           title: nextRepo.title || nextRepo.name,
+          subtitle: nextRepo.subtitle,
           category: category.charAt(0).toUpperCase() + category.slice(1),
           image: imageUrl,
           year,
@@ -395,6 +418,12 @@ export function Works() {
           detailed_description: nextRepo.detailed_description,
           project_type: nextRepo.project_type || [],
           topics: nextRepo.topics || [],
+          screenshots: nextRepo.screenshots || [],
+          challenges: nextRepo.challenges,
+          achievements: nextRepo.achievements,
+          stargazers_count: nextRepo.stargazers_count,
+          language: nextRepo.language,
+          full_name: nextRepo.full_name,
         });
       }
     };
@@ -841,146 +870,12 @@ export function Works() {
                     </div>
                   </motion.div>
                 ) : (
-                  /* Detail Screen */
-                  <motion.div
-                    key="detail"
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20 }}
-                    transition={{ duration: 0.2 }}
-                    className="w-full h-full flex flex-col"
-                  >
-                    {/* Detail Header */}
-                    <div className="flex items-center justify-between p-6 border-b border-neutral-100 shrink-0">
-                      <button
-                        onClick={() => setShowDetail(false)}
-                        className="flex items-center gap-2 text-sm text-neutral-600 hover:text-neutral-900 transition-colors"
-                      >
-                        <ArrowRight className="w-4 h-4 rotate-180" />
-                        <span className="font-mono uppercase tracking-wider">Back</span>
-                      </button>
-                      <h3 className="text-lg font-bold" style={{ fontFamily: "'Montserrat', sans-serif" }}>
-                        {activeProject.title}
-                      </h3>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setActiveProject(null);
-                          setShowDetail(false);
-                        }}
-                        className="w-10 h-10 bg-neutral-100 hover:bg-neutral-200 rounded-full flex items-center justify-center transition-colors cursor-pointer"
-                      >
-                        <X className="w-5 h-5 text-neutral-600" />
-                      </button>
-                    </div>
-
-                    {/* Detail Content */}
-                    <div className="flex-1 overflow-y-auto p-6 md:p-8">
-                      <div className="max-w-3xl mx-auto space-y-8">
-                        {/* Project Info Header */}
-                        <div className="flex flex-wrap items-center gap-3">
-                          <span className="px-3 py-1 text-xs font-mono bg-neutral-100 text-neutral-600 rounded-full">
-                            {activeProject.category}
-                          </span>
-                          <span className="text-sm text-neutral-500 font-mono">{activeProject.yearMonth}</span>
-                          {activeProject.project_type.map((type, i) => (
-                            <span key={i} className="px-2 py-0.5 text-[10px] bg-black text-white rounded">
-                              {type}
-                            </span>
-                          ))}
-                        </div>
-
-                        {/* Description */}
-                        <div>
-                          <h4 className="text-xs font-mono uppercase tracking-wider text-neutral-400 mb-3">Description</h4>
-                          <p className="text-neutral-700 leading-relaxed">
-                            {activeProject.detailed_description || activeProject.description || "No description available."}
-                          </p>
-                        </div>
-
-                        {/* Technologies */}
-                        {activeProject.technologies.length > 0 && (
-                          <div>
-                            <h4 className="text-xs font-mono uppercase tracking-wider text-neutral-400 mb-3">Technologies</h4>
-                            <div className="flex flex-wrap gap-2">
-                              {activeProject.technologies.map((tech, i) => (
-                                <span 
-                                  key={i} 
-                                  className="px-3 py-1.5 text-sm bg-neutral-100 text-neutral-700 rounded-lg"
-                                >
-                                  {tech.name}
-                                  {tech.category && (
-                                    <span className="ml-1 text-xs text-neutral-400">({tech.category})</span>
-                                  )}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Features */}
-                        {activeProject.features.length > 0 && (
-                          <div>
-                            <h4 className="text-xs font-mono uppercase tracking-wider text-neutral-400 mb-3">Features</h4>
-                            <ul className="space-y-3">
-                              {activeProject.features.map((feature, i) => (
-                                <li key={i} className="flex gap-3">
-                                  <span className="w-6 h-6 rounded-full bg-neutral-100 text-neutral-500 text-xs flex items-center justify-center shrink-0 mt-0.5">
-                                    {i + 1}
-                                  </span>
-                                  <div>
-                                    <span className="font-medium text-neutral-800">{feature.title}</span>
-                                    {feature.description && (
-                                      <p className="text-sm text-neutral-500 mt-1">{feature.description}</p>
-                                    )}
-                                  </div>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-
-                        {/* Topics */}
-                        {activeProject.topics.length > 0 && (
-                          <div>
-                            <h4 className="text-xs font-mono uppercase tracking-wider text-neutral-400 mb-3">Topics</h4>
-                            <div className="flex flex-wrap gap-2">
-                              {activeProject.topics.map((topic, i) => (
-                                <span key={i} className="px-3 py-1.5 text-sm bg-neutral-50 text-neutral-600 rounded-lg border border-neutral-200">
-                                  {topic}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Links */}
-                        <div className="flex flex-wrap gap-3 pt-4 border-t border-neutral-100">
-                          <a 
-                            href={activeProject.html_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="px-6 py-3 bg-black text-white text-sm font-mono uppercase tracking-widest hover:bg-neutral-800 transition-colors flex items-center gap-2 rounded-lg"
-                          >
-                            <Github className="w-4 h-4" />
-                            GitHub
-                          </a>
-                          
-                          {activeProject.demo_url && (
-                            <a
-                              href={activeProject.demo_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="px-6 py-3 bg-neutral-100 text-neutral-800 text-sm font-mono uppercase tracking-widest hover:bg-neutral-200 transition-colors flex items-center gap-2 rounded-lg"
-                            >
-                              <ExternalLink className="w-4 h-4" />
-                              Live Demo
-                            </a>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </motion.div>
+                  /* Rich Detail Screen */
+                  <ProjectDetailPage 
+                    project={activeProject} 
+                    onBack={() => setShowDetail(false)}
+                    onClose={() => { setActiveProject(null); setShowDetail(false); }}
+                  />
                 )}
               </AnimatePresence>
             </motion.div>
@@ -1035,5 +930,418 @@ function Spine3D({ project, angle, radius, onSelect }: { project: ProjectDisplay
         </div>
       </motion.div>
     </div>
+  );
+}
+
+// --- Category Icon Helper ---
+const getCategoryIcon = (category: string) => {
+  const lowerCategory = category.toLowerCase();
+  if (lowerCategory.includes('frontend') || lowerCategory.includes('ui')) return <Globe className="w-4 h-4" />;
+  if (lowerCategory.includes('backend') || lowerCategory.includes('server')) return <Server className="w-4 h-4" />;
+  if (lowerCategory.includes('database') || lowerCategory.includes('db')) return <Database className="w-4 h-4" />;
+  if (lowerCategory.includes('mobile') || lowerCategory.includes('app')) return <Smartphone className="w-4 h-4" />;
+  if (lowerCategory.includes('framework') || lowerCategory.includes('library')) return <Layers className="w-4 h-4" />;
+  return <Code2 className="w-4 h-4" />;
+};
+
+// --- Category Color Helper ---
+const getCategoryColor = (category: string) => {
+  const lowerCategory = category.toLowerCase();
+  if (lowerCategory.includes('frontend') || lowerCategory.includes('ui')) return 'bg-blue-50 text-blue-600 border-blue-200';
+  if (lowerCategory.includes('backend') || lowerCategory.includes('server')) return 'bg-green-50 text-green-600 border-green-200';
+  if (lowerCategory.includes('database') || lowerCategory.includes('db')) return 'bg-orange-50 text-orange-600 border-orange-200';
+  if (lowerCategory.includes('mobile') || lowerCategory.includes('app')) return 'bg-purple-50 text-purple-600 border-purple-200';
+  if (lowerCategory.includes('framework') || lowerCategory.includes('library')) return 'bg-pink-50 text-pink-600 border-pink-200';
+  if (lowerCategory.includes('tool') || lowerCategory.includes('devops')) return 'bg-cyan-50 text-cyan-600 border-cyan-200';
+  return 'bg-neutral-50 text-neutral-600 border-neutral-200';
+};
+
+// --- Project Detail Page Component ---
+function ProjectDetailPage({ 
+  project, 
+  onBack, 
+  onClose 
+}: { 
+  project: ProjectDisplay; 
+  onBack: () => void; 
+  onClose: () => void;
+}) {
+  const [currentScreenshotIndex, setCurrentScreenshotIndex] = useState(0);
+  const [imageLoadError, setImageLoadError] = useState<Set<number>>(new Set());
+
+  // Group technologies by category
+  const techByCategory = React.useMemo(() => {
+    const grouped: Record<string, Array<{ name: string; category: string; version?: string }>> = {};
+    project.technologies.forEach(tech => {
+      const cat = tech.category || 'Other';
+      if (!grouped[cat]) grouped[cat] = [];
+      grouped[cat].push(tech);
+    });
+    return grouped;
+  }, [project.technologies]);
+
+  const hasScreenshots = project.screenshots && project.screenshots.length > 0;
+  const hasVideos = project.screenshots?.some(s => s.type === 'video' || s.file?.endsWith('.mp4'));
+
+  const nextScreenshot = () => {
+    if (hasScreenshots) {
+      setCurrentScreenshotIndex((prev) => 
+        prev === project.screenshots.length - 1 ? 0 : prev + 1
+      );
+    }
+  };
+
+  const prevScreenshot = () => {
+    if (hasScreenshots) {
+      setCurrentScreenshotIndex((prev) => 
+        prev === 0 ? project.screenshots.length - 1 : prev - 1
+      );
+    }
+  };
+
+  return (
+    <motion.div
+      key="detail"
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: 20 }}
+      transition={{ duration: 0.2 }}
+      className="w-full h-full flex flex-col bg-[#FAFAFA]"
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between px-6 py-4 bg-white border-b border-neutral-100 shrink-0">
+        <button
+          onClick={onBack}
+          className="flex items-center gap-2 text-sm text-neutral-600 hover:text-neutral-900 transition-colors"
+        >
+          <ChevronLeft className="w-5 h-5" />
+          <span className="font-medium">뒤로가기</span>
+        </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); onClose(); }}
+          className="w-9 h-9 bg-neutral-100 hover:bg-neutral-200 rounded-full flex items-center justify-center transition-colors cursor-pointer"
+        >
+          <X className="w-4 h-4 text-neutral-600" />
+        </button>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-4xl mx-auto px-6 py-8 space-y-8">
+          
+          {/* Project Header Card */}
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-neutral-100">
+            <div className="flex items-start gap-4">
+              {/* Project Icon */}
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-2xl font-bold shadow-lg shrink-0">
+                {project.title.charAt(0).toUpperCase()}
+              </div>
+              
+              <div className="flex-1 min-w-0">
+                <div className="flex flex-wrap items-center gap-2 mb-2">
+                  <span className="px-2.5 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">
+                    {project.category}
+                  </span>
+                  <span className="text-sm text-neutral-400 font-mono">{project.yearMonth}</span>
+                  {project.language && (
+                    <span className="px-2 py-0.5 text-xs bg-neutral-100 text-neutral-600 rounded">
+                      {project.language}
+                    </span>
+                  )}
+                </div>
+                
+                <h1 className="text-2xl font-bold text-neutral-900 mb-1" style={{ fontFamily: "'Inter', sans-serif" }}>
+                  {project.title}
+                </h1>
+                
+                {project.subtitle && (
+                  <p className="text-neutral-500 text-sm">{project.subtitle}</p>
+                )}
+                
+                {/* Short description */}
+                <p className="text-neutral-600 text-sm mt-3 leading-relaxed">
+                  {project.description || '프로젝트 설명이 없습니다.'}
+                </p>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-wrap gap-3 mt-6 pt-6 border-t border-neutral-100">
+              <a
+                href={project.html_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 min-w-[140px] px-4 py-3 bg-neutral-900 text-white text-sm font-medium rounded-xl hover:bg-neutral-800 transition-colors flex items-center justify-center gap-2"
+              >
+                <Github className="w-4 h-4" />
+                GitHub에서 보기
+              </a>
+              {project.demo_url && (
+                <a
+                  href={project.demo_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 min-w-[140px] px-4 py-3 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                >
+                  <Play className="w-4 h-4" />
+                  라이브 데모
+                </a>
+              )}
+            </div>
+          </div>
+
+          {/* Tech Stack Section */}
+          {project.technologies.length > 0 && (
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-neutral-100">
+              <h2 className="text-lg font-bold text-neutral-900 mb-4 flex items-center gap-2">
+                <Code2 className="w-5 h-5 text-neutral-400" />
+                기술 스택
+              </h2>
+              
+              <div className="space-y-4">
+                {Object.entries(techByCategory).map(([category, techs]) => (
+                  <div key={category} className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm text-neutral-500">
+                      {getCategoryIcon(category)}
+                      <span className="font-medium">{category}</span>
+                    </div>
+                    <div className="flex flex-wrap gap-2 pl-6">
+                      {techs.map((tech, i) => (
+                        <span
+                          key={i}
+                          className={`px-3 py-1.5 text-sm rounded-lg border ${getCategoryColor(category)}`}
+                        >
+                          {tech.name}
+                          {tech.version && (
+                            <span className="ml-1 opacity-60 text-xs">v{tech.version}</span>
+                          )}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Features Section */}
+          {project.features.length > 0 && (
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-neutral-100">
+              <h2 className="text-lg font-bold text-neutral-900 mb-4 flex items-center gap-2">
+                <Layers className="w-5 h-5 text-neutral-400" />
+                기능
+              </h2>
+              
+              <div className="flex flex-wrap gap-2">
+                {project.features.map((feature, i) => (
+                  <div 
+                    key={i}
+                    className="group relative"
+                  >
+                    <span className="px-3 py-2 bg-neutral-50 text-neutral-700 text-sm rounded-lg border border-neutral-200 inline-flex items-center gap-2 hover:bg-neutral-100 transition-colors cursor-default">
+                      <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-600 text-xs flex items-center justify-center font-medium">
+                        {i + 1}
+                      </span>
+                      {feature.title}
+                    </span>
+                    {feature.description && (
+                      <div className="absolute left-0 top-full mt-2 p-3 bg-neutral-900 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-64">
+                        {feature.description}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Screenshots Gallery */}
+          {hasScreenshots && (
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-neutral-100">
+              <h2 className="text-lg font-bold text-neutral-900 mb-4 flex items-center gap-2">
+                <ImageIcon className="w-5 h-5 text-neutral-400" />
+                스크린샷
+                {hasVideos && <span className="text-xs text-neutral-400 ml-2">(영상 포함)</span>}
+              </h2>
+              
+              {/* Main Screenshot/Video */}
+              <div className="relative aspect-video bg-neutral-100 rounded-xl overflow-hidden mb-4">
+                {project.screenshots[currentScreenshotIndex]?.type === 'video' || 
+                 project.screenshots[currentScreenshotIndex]?.file?.endsWith('.mp4') ? (
+                  <video
+                    src={project.screenshots[currentScreenshotIndex].url || project.screenshots[currentScreenshotIndex].file}
+                    className="w-full h-full object-contain"
+                    controls
+                    autoPlay
+                    muted
+                    loop
+                  />
+                ) : (
+                  <img
+                    src={project.screenshots[currentScreenshotIndex]?.url || project.screenshots[currentScreenshotIndex]?.file}
+                    alt={project.screenshots[currentScreenshotIndex]?.caption || `Screenshot ${currentScreenshotIndex + 1}`}
+                    className="w-full h-full object-contain"
+                    onError={() => {
+                      setImageLoadError(prev => new Set(prev).add(currentScreenshotIndex));
+                    }}
+                  />
+                )}
+                
+                {/* Navigation Arrows */}
+                {project.screenshots.length > 1 && (
+                  <>
+                    <button
+                      onClick={prevScreenshot}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-lg transition-all"
+                    >
+                      <ChevronLeft className="w-5 h-5 text-neutral-700" />
+                    </button>
+                    <button
+                      onClick={nextScreenshot}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-lg transition-all"
+                    >
+                      <ChevronRight className="w-5 h-5 text-neutral-700" />
+                    </button>
+                  </>
+                )}
+                
+                {/* Caption */}
+                {project.screenshots[currentScreenshotIndex]?.caption && (
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
+                    <p className="text-white text-sm">
+                      {project.screenshots[currentScreenshotIndex].caption}
+                    </p>
+                  </div>
+                )}
+              </div>
+              
+              {/* Thumbnails */}
+              {project.screenshots.length > 1 && (
+                <div className="flex gap-2 overflow-x-auto pb-2">
+                  {project.screenshots.map((screenshot, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setCurrentScreenshotIndex(i)}
+                      className={`relative shrink-0 w-20 h-14 rounded-lg overflow-hidden border-2 transition-all ${
+                        i === currentScreenshotIndex 
+                          ? 'border-blue-500 ring-2 ring-blue-200' 
+                          : 'border-transparent hover:border-neutral-300'
+                      }`}
+                    >
+                      {screenshot.type === 'video' || screenshot.file?.endsWith('.mp4') ? (
+                        <div className="w-full h-full bg-neutral-200 flex items-center justify-center">
+                          <Play className="w-4 h-4 text-neutral-500" />
+                        </div>
+                      ) : (
+                        <img
+                          src={screenshot.url || screenshot.file}
+                          alt={screenshot.caption || `Thumbnail ${i + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Detailed Description */}
+          {project.detailed_description && (
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-neutral-100">
+              <h2 className="text-lg font-bold text-neutral-900 mb-4 flex items-center gap-2">
+                <Code2 className="w-5 h-5 text-neutral-400" />
+                상세 설명
+              </h2>
+              <div className="prose prose-neutral prose-sm max-w-none">
+                <p className="text-neutral-700 leading-relaxed whitespace-pre-wrap">
+                  {project.detailed_description}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Challenges & Achievements */}
+          {(project.challenges || project.achievements) && (
+            <div className="grid md:grid-cols-2 gap-4">
+              {project.challenges && (
+                <div className="bg-white rounded-2xl p-6 shadow-sm border border-neutral-100">
+                  <h2 className="text-lg font-bold text-neutral-900 mb-3">🎯 도전 과제</h2>
+                  <p className="text-neutral-600 text-sm leading-relaxed">{project.challenges}</p>
+                </div>
+              )}
+              {project.achievements && (
+                <div className="bg-white rounded-2xl p-6 shadow-sm border border-neutral-100">
+                  <h2 className="text-lg font-bold text-neutral-900 mb-3">🏆 성과</h2>
+                  <p className="text-neutral-600 text-sm leading-relaxed">{project.achievements}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Topics/Tags */}
+          {project.topics.length > 0 && (
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-neutral-100">
+              <h2 className="text-lg font-bold text-neutral-900 mb-4">토픽</h2>
+              <div className="flex flex-wrap gap-2">
+                {project.topics.map((topic, i) => (
+                  <span
+                    key={i}
+                    className="px-3 py-1.5 text-sm bg-neutral-100 text-neutral-600 rounded-full hover:bg-neutral-200 transition-colors cursor-default"
+                  >
+                    #{topic}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* GitHub Stats */}
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-neutral-100">
+            <h2 className="text-lg font-bold text-neutral-900 mb-4">프로젝트 정보</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="text-center p-4 bg-neutral-50 rounded-xl">
+                <Star className="w-5 h-5 mx-auto mb-2 text-yellow-500" />
+                <span className="text-2xl font-bold text-neutral-900">{project.stargazers_count || 0}</span>
+                <p className="text-xs text-neutral-500 mt-1">Stars</p>
+              </div>
+              <div className="text-center p-4 bg-neutral-50 rounded-xl">
+                <Calendar className="w-5 h-5 mx-auto mb-2 text-blue-500" />
+                <span className="text-lg font-bold text-neutral-900">{project.yearMonth}</span>
+                <p className="text-xs text-neutral-500 mt-1">시작일</p>
+              </div>
+              <div className="text-center p-4 bg-neutral-50 rounded-xl">
+                <Code2 className="w-5 h-5 mx-auto mb-2 text-green-500" />
+                <span className="text-lg font-bold text-neutral-900">{project.language || 'N/A'}</span>
+                <p className="text-xs text-neutral-500 mt-1">주 언어</p>
+              </div>
+              <div className="text-center p-4 bg-neutral-50 rounded-xl">
+                <Layers className="w-5 h-5 mx-auto mb-2 text-purple-500" />
+                <span className="text-2xl font-bold text-neutral-900">{project.technologies.length}</span>
+                <p className="text-xs text-neutral-500 mt-1">기술 스택</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom CTA */}
+          <div className="bg-gradient-to-r from-neutral-900 to-neutral-800 rounded-2xl p-6 text-center">
+            <p className="text-neutral-300 text-sm mb-4">
+              더 자세한 내용은 GitHub에서 확인하세요
+            </p>
+            <a
+              href={project.html_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-white text-neutral-900 font-medium rounded-xl hover:bg-neutral-100 transition-colors"
+            >
+              <Github className="w-5 h-5" />
+              GitHub에서 자세히 보기
+              <ArrowRight className="w-4 h-4" />
+            </a>
+          </div>
+
+        </div>
+      </div>
+    </motion.div>
   );
 }

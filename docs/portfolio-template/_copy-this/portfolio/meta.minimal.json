@@ -1,0 +1,19 @@
+{
+  "display": {
+    "title": "프로젝트 제목",
+    "description": "프로젝트 설명"
+  },
+  "classification": {
+    "project_type": ["web"],
+    "priority": 0
+  },
+  "timeline": {
+    "start_date": "2024-01-01"
+  },
+  "technologies": [
+    { "name": "React", "category": "Frontend" }
+  ],
+  "screenshots": [
+    { "file": "main.png", "caption": "메인 화면" }
+  ]
+}

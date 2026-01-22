@@ -1,0 +1,52 @@
+{
+  "title": "",
+  "subtitle": "",
+  "detailed_description": "",
+  
+  "project_type": [],
+  "status": "completed",
+  "priority": 0,
+  
+  "start_date": "",
+  "end_date": "",
+  "is_ongoing": false,
+  
+  "technologies": [
+    {
+      "name": "",
+      "category": "",
+      "version": ""
+    }
+  ],
+  
+  "features": [
+    {
+      "title": "",
+      "description": ""
+    }
+  ],
+  
+  "screenshots": [
+    {
+      "file": "",
+      "caption": "",
+      "type": "desktop"
+    }
+  ],
+  
+  "roles": [
+    {
+      "role_name": "",
+      "responsibility": "",
+      "contribution_percentage": 100
+    }
+  ],
+  
+  "demo_url": "",
+  "documentation_url": "",
+  
+  "challenges": "",
+  "achievements": "",
+  
+  "client_name": ""
+}

@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { motion, useMotionValue, AnimatePresence, useSpring } from 'motion/react';
-import { ArrowRight, X, Hand, Search, RefreshCw, ExternalLink, Github, Eye, Star, GitFork, Calendar, ChevronLeft, ChevronRight, Code2, Database, Globe, Layers, Server, Smartphone, Play, Image as ImageIcon } from 'lucide-react';
+import { ArrowRight, X, Hand, Search, RefreshCw, ExternalLink, Github, Eye, Star, GitFork, Calendar, ChevronLeft, ChevronRight, Code2, Database, Globe, Layers, Server, Smartphone, Play, Image as ImageIcon, Users, FileCode, GitCommit, Clock, CheckCircle2, Building2, BookOpen, Briefcase } from 'lucide-react';
 
 // --- API Configuration ---
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
@@ -29,7 +29,16 @@ interface Repository {
   demo_url: string | null;
   has_portfolio_meta: boolean;
   start_date: string | null;
+  end_date: string | null;
+  is_ongoing: boolean;
   github_created_at: string | null;
+  // Additional metadata
+  roles: Array<{ role_name: string; responsibility?: string; contribution_percentage?: number }>;
+  client_name: string | null;
+  lines_of_code: number | null;
+  commit_count: number | null;
+  contributor_count: number;
+  documentation_url: string | null;
 }
 
 interface ProjectDisplay {
@@ -48,6 +57,7 @@ interface ProjectDisplay {
   description: string | null;
   html_url: string;
   demo_url: string | null;
+  documentation_url: string | null;
   technologies: Array<{ name: string; category: string; version?: string }>;
   features: Array<{ title: string; description: string }>;
   detailed_description: string | null;
@@ -61,6 +71,16 @@ interface ProjectDisplay {
   stargazers_count: number;
   language: string | null;
   full_name: string;
+  // New metadata fields
+  status: string;
+  start_date: string | null;
+  end_date: string | null;
+  is_ongoing: boolean;
+  roles: Array<{ role_name: string; responsibility?: string; contribution_percentage?: number }>;
+  client_name: string | null;
+  lines_of_code: number | null;
+  commit_count: number | null;
+  contributor_count: number;
 }
 
 // --- Fallback Data (shown when API unavailable) ---
@@ -80,6 +100,7 @@ const fallbackProjects: ProjectDisplay[] = [
     description: "Loading projects from GitHub...",
     html_url: "#",
     demo_url: null,
+    documentation_url: null,
     technologies: [],
     features: [],
     detailed_description: null,
@@ -91,6 +112,15 @@ const fallbackProjects: ProjectDisplay[] = [
     stargazers_count: 0,
     language: null,
     full_name: "loading",
+    status: "completed",
+    start_date: null,
+    end_date: null,
+    is_ongoing: false,
+    roles: [],
+    client_name: null,
+    lines_of_code: null,
+    commit_count: null,
+    contributor_count: 1,
   }
 ];
 
@@ -176,6 +206,7 @@ const transformReposToProjects = (repos: Repository[]): ProjectDisplay[] => {
       description: repo.description,
       html_url: repo.html_url,
       demo_url: repo.demo_url,
+      documentation_url: repo.documentation_url,
       technologies: repo.technologies || [],
       features: repo.features || [],
       detailed_description: repo.detailed_description,
@@ -187,6 +218,16 @@ const transformReposToProjects = (repos: Repository[]): ProjectDisplay[] => {
       stargazers_count: repo.stargazers_count,
       language: repo.language,
       full_name: repo.full_name,
+      // New metadata fields
+      status: repo.status || 'completed',
+      start_date: repo.start_date,
+      end_date: repo.end_date,
+      is_ongoing: repo.is_ongoing || false,
+      roles: repo.roles || [],
+      client_name: repo.client_name,
+      lines_of_code: repo.lines_of_code,
+      commit_count: repo.commit_count,
+      contributor_count: repo.contributor_count || 1,
     });
   }
   
@@ -413,6 +454,7 @@ export function Works() {
           description: nextRepo.description,
           html_url: nextRepo.html_url,
           demo_url: nextRepo.demo_url,
+          documentation_url: nextRepo.documentation_url,
           technologies: nextRepo.technologies || [],
           features: nextRepo.features || [],
           detailed_description: nextRepo.detailed_description,
@@ -424,6 +466,16 @@ export function Works() {
           stargazers_count: nextRepo.stargazers_count,
           language: nextRepo.language,
           full_name: nextRepo.full_name,
+          // New metadata fields
+          status: nextRepo.status || 'completed',
+          start_date: nextRepo.start_date,
+          end_date: nextRepo.end_date,
+          is_ongoing: nextRepo.is_ongoing || false,
+          roles: nextRepo.roles || [],
+          client_name: nextRepo.client_name,
+          lines_of_code: nextRepo.lines_of_code,
+          commit_count: nextRepo.commit_count,
+          contributor_count: nextRepo.contributor_count || 1,
         });
       }
     };
@@ -966,8 +1018,7 @@ function ProjectDetailPage({
   onBack: () => void; 
   onClose: () => void;
 }) {
-  const [currentScreenshotIndex, setCurrentScreenshotIndex] = useState(0);
-  const [imageLoadError, setImageLoadError] = useState<Set<number>>(new Set());
+  const [selectedScreenshot, setSelectedScreenshot] = useState<number | null>(null);
 
   // Group technologies by category
   const techByCategory = React.useMemo(() => {
@@ -983,21 +1034,33 @@ function ProjectDetailPage({
   const hasScreenshots = project.screenshots && project.screenshots.length > 0;
   const hasVideos = project.screenshots?.some(s => s.type === 'video' || s.file?.endsWith('.mp4'));
 
-  const nextScreenshot = () => {
-    if (hasScreenshots) {
-      setCurrentScreenshotIndex((prev) => 
-        prev === project.screenshots.length - 1 ? 0 : prev + 1
-      );
+  // Format date range
+  const getDateRange = () => {
+    if (!project.start_date) return project.yearMonth;
+    const start = new Date(project.start_date);
+    const startStr = `${start.getFullYear()}.${String(start.getMonth() + 1).padStart(2, '0')}`;
+    if (project.is_ongoing) return `${startStr} ~ 진행중`;
+    if (project.end_date) {
+      const end = new Date(project.end_date);
+      const endStr = `${end.getFullYear()}.${String(end.getMonth() + 1).padStart(2, '0')}`;
+      return `${startStr} ~ ${endStr}`;
+    }
+    return startStr;
+  };
+
+  // Get status badge
+  const getStatusBadge = () => {
+    switch (project.status) {
+      case 'in_progress':
+        return { label: '진행중', color: 'bg-green-100 text-green-700' };
+      case 'archived':
+        return { label: '보관됨', color: 'bg-neutral-100 text-neutral-600' };
+      default:
+        return { label: '완료', color: 'bg-blue-100 text-blue-700' };
     }
   };
 
-  const prevScreenshot = () => {
-    if (hasScreenshots) {
-      setCurrentScreenshotIndex((prev) => 
-        prev === 0 ? project.screenshots.length - 1 : prev - 1
-      );
-    }
-  };
+  const statusBadge = getStatusBadge();
 
   return (
     <motion.div
@@ -1025,11 +1088,11 @@ function ProjectDetailPage({
         </button>
       </div>
 
-      {/* Content */}
+      {/* Content - Scrollable */}
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-4xl mx-auto px-6 py-8 space-y-8">
+        <div className="max-w-4xl mx-auto px-6 py-8 space-y-6">
           
-          {/* Project Header Card */}
+          {/* ========== Hero Section ========== */}
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-neutral-100">
             <div className="flex items-start gap-4">
               {/* Project Icon */}
@@ -1038,14 +1101,23 @@ function ProjectDetailPage({
               </div>
               
               <div className="flex-1 min-w-0">
+                {/* Badges */}
                 <div className="flex flex-wrap items-center gap-2 mb-2">
-                  <span className="px-2.5 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">
+                  <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${statusBadge.color}`}>
+                    {statusBadge.label}
+                  </span>
+                  <span className="px-2.5 py-1 text-xs font-medium bg-purple-100 text-purple-700 rounded-full">
                     {project.category}
                   </span>
-                  <span className="text-sm text-neutral-400 font-mono">{project.yearMonth}</span>
                   {project.language && (
                     <span className="px-2 py-0.5 text-xs bg-neutral-100 text-neutral-600 rounded">
                       {project.language}
+                    </span>
+                  )}
+                  {project.client_name && (
+                    <span className="px-2 py-0.5 text-xs bg-orange-100 text-orange-600 rounded flex items-center gap-1">
+                      <Building2 className="w-3 h-3" />
+                      {project.client_name}
                     </span>
                   )}
                 </div>
@@ -1055,42 +1127,211 @@ function ProjectDetailPage({
                 </h1>
                 
                 {project.subtitle && (
-                  <p className="text-neutral-500 text-sm">{project.subtitle}</p>
+                  <p className="text-neutral-500 text-sm mb-2">{project.subtitle}</p>
                 )}
                 
-                {/* Short description */}
-                <p className="text-neutral-600 text-sm mt-3 leading-relaxed">
-                  {project.description || '프로젝트 설명이 없습니다.'}
-                </p>
+                {/* Date Range */}
+                <div className="flex items-center gap-2 text-sm text-neutral-400">
+                  <Calendar className="w-4 h-4" />
+                  <span>{getDateRange()}</span>
+                </div>
               </div>
             </div>
 
+            {/* Description */}
+            <p className="text-neutral-600 text-sm mt-4 leading-relaxed border-t border-neutral-100 pt-4">
+              {project.description || '프로젝트 설명이 없습니다.'}
+            </p>
+
             {/* Action Buttons */}
-            <div className="flex flex-wrap gap-3 mt-6 pt-6 border-t border-neutral-100">
+            <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-neutral-100">
               <a
                 href={project.html_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex-1 min-w-[140px] px-4 py-3 bg-neutral-900 text-white text-sm font-medium rounded-xl hover:bg-neutral-800 transition-colors flex items-center justify-center gap-2"
+                className="flex-1 min-w-[120px] px-4 py-3 bg-neutral-900 text-white text-sm font-medium rounded-xl hover:bg-neutral-800 transition-colors flex items-center justify-center gap-2"
               >
                 <Github className="w-4 h-4" />
-                GitHub에서 보기
+                GitHub
               </a>
               {project.demo_url && (
                 <a
                   href={project.demo_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-1 min-w-[140px] px-4 py-3 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                  className="flex-1 min-w-[120px] px-4 py-3 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
                 >
                   <Play className="w-4 h-4" />
-                  라이브 데모
+                  데모
+                </a>
+              )}
+              {project.documentation_url && (
+                <a
+                  href={project.documentation_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 min-w-[120px] px-4 py-3 bg-emerald-600 text-white text-sm font-medium rounded-xl hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2"
+                >
+                  <BookOpen className="w-4 h-4" />
+                  문서
                 </a>
               )}
             </div>
           </div>
 
-          {/* Tech Stack Section */}
+          {/* ========== Quick Stats Grid ========== */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-neutral-100 text-center">
+              <Star className="w-5 h-5 mx-auto mb-1 text-yellow-500" />
+              <span className="text-xl font-bold text-neutral-900 block">{project.stargazers_count || 0}</span>
+              <p className="text-xs text-neutral-500">Stars</p>
+            </div>
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-neutral-100 text-center">
+              <Code2 className="w-5 h-5 mx-auto mb-1 text-blue-500" />
+              <span className="text-xl font-bold text-neutral-900 block">{project.technologies.length}</span>
+              <p className="text-xs text-neutral-500">기술 스택</p>
+            </div>
+            {project.lines_of_code && (
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-neutral-100 text-center">
+                <FileCode className="w-5 h-5 mx-auto mb-1 text-green-500" />
+                <span className="text-xl font-bold text-neutral-900 block">{project.lines_of_code.toLocaleString()}</span>
+                <p className="text-xs text-neutral-500">코드 라인</p>
+              </div>
+            )}
+            {project.commit_count && (
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-neutral-100 text-center">
+                <GitCommit className="w-5 h-5 mx-auto mb-1 text-purple-500" />
+                <span className="text-xl font-bold text-neutral-900 block">{project.commit_count}</span>
+                <p className="text-xs text-neutral-500">커밋</p>
+              </div>
+            )}
+            {project.contributor_count > 1 && (
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-neutral-100 text-center">
+                <Users className="w-5 h-5 mx-auto mb-1 text-orange-500" />
+                <span className="text-xl font-bold text-neutral-900 block">{project.contributor_count}</span>
+                <p className="text-xs text-neutral-500">기여자</p>
+              </div>
+            )}
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-neutral-100 text-center">
+              <Layers className="w-5 h-5 mx-auto mb-1 text-pink-500" />
+              <span className="text-xl font-bold text-neutral-900 block">{project.features.length}</span>
+              <p className="text-xs text-neutral-500">기능</p>
+            </div>
+          </div>
+
+          {/* ========== Screenshots Grid ========== */}
+          {hasScreenshots && (
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-neutral-100">
+              <h2 className="text-lg font-bold text-neutral-900 mb-4 flex items-center gap-2">
+                <ImageIcon className="w-5 h-5 text-neutral-400" />
+                스크린샷 & 미디어
+                <span className="text-xs text-neutral-400 ml-auto">{project.screenshots.length}개</span>
+              </h2>
+              
+              {/* Grid Layout */}
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {project.screenshots.map((screenshot, i) => {
+                  const isVideo = screenshot.type === 'video' || screenshot.file?.endsWith('.mp4');
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => setSelectedScreenshot(i)}
+                      className="group relative aspect-video bg-neutral-100 rounded-xl overflow-hidden border-2 border-transparent hover:border-blue-400 transition-all"
+                    >
+                      {isVideo ? (
+                        <div className="w-full h-full flex items-center justify-center bg-neutral-200">
+                          <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                            <Play className="w-5 h-5 text-neutral-700 ml-0.5" />
+                          </div>
+                        </div>
+                      ) : (
+                        <img
+                          src={screenshot.url || screenshot.file}
+                          alt={screenshot.caption || `Screenshot ${i + 1}`}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                      )}
+                      {/* Caption Overlay */}
+                      {screenshot.caption && (
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <p className="text-white text-xs truncate">{screenshot.caption}</p>
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Screenshot Lightbox Modal */}
+          <AnimatePresence>
+            {selectedScreenshot !== null && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4"
+                onClick={() => setSelectedScreenshot(null)}
+              >
+                <button
+                  className="absolute top-4 right-4 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-colors"
+                  onClick={() => setSelectedScreenshot(null)}
+                >
+                  <X className="w-5 h-5 text-white" />
+                </button>
+                
+                {/* Navigation */}
+                {project.screenshots.length > 1 && (
+                  <>
+                    <button
+                      className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedScreenshot(prev => prev === 0 ? project.screenshots.length - 1 : (prev ?? 0) - 1);
+                      }}
+                    >
+                      <ChevronLeft className="w-6 h-6 text-white" />
+                    </button>
+                    <button
+                      className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedScreenshot(prev => prev === project.screenshots.length - 1 ? 0 : (prev ?? 0) + 1);
+                      }}
+                    >
+                      <ChevronRight className="w-6 h-6 text-white" />
+                    </button>
+                  </>
+                )}
+
+                <div className="max-w-5xl max-h-[85vh] w-full" onClick={e => e.stopPropagation()}>
+                  {project.screenshots[selectedScreenshot]?.type === 'video' || 
+                   project.screenshots[selectedScreenshot]?.file?.endsWith('.mp4') ? (
+                    <video
+                      src={project.screenshots[selectedScreenshot].url || project.screenshots[selectedScreenshot].file}
+                      className="w-full h-full object-contain rounded-lg"
+                      controls
+                      autoPlay
+                    />
+                  ) : (
+                    <img
+                      src={project.screenshots[selectedScreenshot]?.url || project.screenshots[selectedScreenshot]?.file}
+                      alt={project.screenshots[selectedScreenshot]?.caption || ''}
+                      className="w-full h-full object-contain rounded-lg"
+                    />
+                  )}
+                  {project.screenshots[selectedScreenshot]?.caption && (
+                    <p className="text-white text-center mt-4 text-sm">
+                      {project.screenshots[selectedScreenshot].caption}
+                    </p>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* ========== Tech Stack Section ========== */}
           {project.technologies.length > 0 && (
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-neutral-100">
               <h2 className="text-lg font-bold text-neutral-900 mb-4 flex items-center gap-2">
@@ -1104,6 +1345,7 @@ function ProjectDetailPage({
                     <div className="flex items-center gap-2 text-sm text-neutral-500">
                       {getCategoryIcon(category)}
                       <span className="font-medium">{category}</span>
+                      <span className="text-xs text-neutral-400">({techs.length})</span>
                     </div>
                     <div className="flex flex-wrap gap-2 pl-6">
                       {techs.map((tech, i) => (
@@ -1124,133 +1366,40 @@ function ProjectDetailPage({
             </div>
           )}
 
-          {/* Features Section */}
+          {/* ========== Features Section ========== */}
           {project.features.length > 0 && (
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-neutral-100">
               <h2 className="text-lg font-bold text-neutral-900 mb-4 flex items-center gap-2">
                 <Layers className="w-5 h-5 text-neutral-400" />
-                기능
+                주요 기능
               </h2>
               
-              <div className="flex flex-wrap gap-2">
+              <div className="grid gap-3">
                 {project.features.map((feature, i) => (
                   <div 
                     key={i}
-                    className="group relative"
+                    className="flex items-start gap-3 p-3 bg-neutral-50 rounded-xl border border-neutral-100"
                   >
-                    <span className="px-3 py-2 bg-neutral-50 text-neutral-700 text-sm rounded-lg border border-neutral-200 inline-flex items-center gap-2 hover:bg-neutral-100 transition-colors cursor-default">
-                      <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-600 text-xs flex items-center justify-center font-medium">
-                        {i + 1}
-                      </span>
-                      {feature.title}
+                    <span className="w-7 h-7 rounded-lg bg-blue-100 text-blue-600 text-sm flex items-center justify-center font-bold shrink-0">
+                      {i + 1}
                     </span>
-                    {feature.description && (
-                      <div className="absolute left-0 top-full mt-2 p-3 bg-neutral-900 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-64">
-                        {feature.description}
-                      </div>
-                    )}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-medium text-neutral-900 text-sm">{feature.title}</h3>
+                      {feature.description && (
+                        <p className="text-neutral-500 text-xs mt-1 leading-relaxed">{feature.description}</p>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Screenshots Gallery */}
-          {hasScreenshots && (
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-neutral-100">
-              <h2 className="text-lg font-bold text-neutral-900 mb-4 flex items-center gap-2">
-                <ImageIcon className="w-5 h-5 text-neutral-400" />
-                스크린샷
-                {hasVideos && <span className="text-xs text-neutral-400 ml-2">(영상 포함)</span>}
-              </h2>
-              
-              {/* Main Screenshot/Video */}
-              <div className="relative aspect-video bg-neutral-100 rounded-xl overflow-hidden mb-4">
-                {project.screenshots[currentScreenshotIndex]?.type === 'video' || 
-                 project.screenshots[currentScreenshotIndex]?.file?.endsWith('.mp4') ? (
-                  <video
-                    src={project.screenshots[currentScreenshotIndex].url || project.screenshots[currentScreenshotIndex].file}
-                    className="w-full h-full object-contain"
-                    controls
-                    autoPlay
-                    muted
-                    loop
-                  />
-                ) : (
-                  <img
-                    src={project.screenshots[currentScreenshotIndex]?.url || project.screenshots[currentScreenshotIndex]?.file}
-                    alt={project.screenshots[currentScreenshotIndex]?.caption || `Screenshot ${currentScreenshotIndex + 1}`}
-                    className="w-full h-full object-contain"
-                    onError={() => {
-                      setImageLoadError(prev => new Set(prev).add(currentScreenshotIndex));
-                    }}
-                  />
-                )}
-                
-                {/* Navigation Arrows */}
-                {project.screenshots.length > 1 && (
-                  <>
-                    <button
-                      onClick={prevScreenshot}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-lg transition-all"
-                    >
-                      <ChevronLeft className="w-5 h-5 text-neutral-700" />
-                    </button>
-                    <button
-                      onClick={nextScreenshot}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-lg transition-all"
-                    >
-                      <ChevronRight className="w-5 h-5 text-neutral-700" />
-                    </button>
-                  </>
-                )}
-                
-                {/* Caption */}
-                {project.screenshots[currentScreenshotIndex]?.caption && (
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
-                    <p className="text-white text-sm">
-                      {project.screenshots[currentScreenshotIndex].caption}
-                    </p>
-                  </div>
-                )}
-              </div>
-              
-              {/* Thumbnails */}
-              {project.screenshots.length > 1 && (
-                <div className="flex gap-2 overflow-x-auto pb-2">
-                  {project.screenshots.map((screenshot, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setCurrentScreenshotIndex(i)}
-                      className={`relative shrink-0 w-20 h-14 rounded-lg overflow-hidden border-2 transition-all ${
-                        i === currentScreenshotIndex 
-                          ? 'border-blue-500 ring-2 ring-blue-200' 
-                          : 'border-transparent hover:border-neutral-300'
-                      }`}
-                    >
-                      {screenshot.type === 'video' || screenshot.file?.endsWith('.mp4') ? (
-                        <div className="w-full h-full bg-neutral-200 flex items-center justify-center">
-                          <Play className="w-4 h-4 text-neutral-500" />
-                        </div>
-                      ) : (
-                        <img
-                          src={screenshot.url || screenshot.file}
-                          alt={screenshot.caption || `Thumbnail ${i + 1}`}
-                          className="w-full h-full object-cover"
-                        />
-                      )}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Detailed Description */}
+          {/* ========== Detailed Description ========== */}
           {project.detailed_description && (
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-neutral-100">
               <h2 className="text-lg font-bold text-neutral-900 mb-4 flex items-center gap-2">
-                <Code2 className="w-5 h-5 text-neutral-400" />
+                <BookOpen className="w-5 h-5 text-neutral-400" />
                 상세 설명
               </h2>
               <div className="prose prose-neutral prose-sm max-w-none">
@@ -1261,28 +1410,67 @@ function ProjectDetailPage({
             </div>
           )}
 
-          {/* Challenges & Achievements */}
+          {/* ========== Roles Section ========== */}
+          {project.roles.length > 0 && (
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-neutral-100">
+              <h2 className="text-lg font-bold text-neutral-900 mb-4 flex items-center gap-2">
+                <Briefcase className="w-5 h-5 text-neutral-400" />
+                담당 역할
+              </h2>
+              
+              <div className="space-y-3">
+                {project.roles.map((role, i) => (
+                  <div 
+                    key={i}
+                    className="flex items-center gap-4 p-4 bg-gradient-to-r from-neutral-50 to-white rounded-xl border border-neutral-100"
+                  >
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white shrink-0">
+                      <Briefcase className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-neutral-900">{role.role_name}</h3>
+                      {role.responsibility && (
+                        <p className="text-neutral-500 text-sm mt-0.5">{role.responsibility}</p>
+                      )}
+                    </div>
+                    {role.contribution_percentage && (
+                      <div className="text-right shrink-0">
+                        <span className="text-2xl font-bold text-blue-600">{role.contribution_percentage}%</span>
+                        <p className="text-xs text-neutral-400">기여도</p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ========== Challenges & Achievements ========== */}
           {(project.challenges || project.achievements) && (
             <div className="grid md:grid-cols-2 gap-4">
               {project.challenges && (
-                <div className="bg-white rounded-2xl p-6 shadow-sm border border-neutral-100">
-                  <h2 className="text-lg font-bold text-neutral-900 mb-3">🎯 도전 과제</h2>
-                  <p className="text-neutral-600 text-sm leading-relaxed">{project.challenges}</p>
+                <div className="bg-gradient-to-br from-orange-50 to-white rounded-2xl p-6 shadow-sm border border-orange-100">
+                  <h2 className="text-lg font-bold text-neutral-900 mb-3 flex items-center gap-2">
+                    <span className="text-xl">🎯</span> 도전 과제
+                  </h2>
+                  <p className="text-neutral-600 text-sm leading-relaxed whitespace-pre-wrap">{project.challenges}</p>
                 </div>
               )}
               {project.achievements && (
-                <div className="bg-white rounded-2xl p-6 shadow-sm border border-neutral-100">
-                  <h2 className="text-lg font-bold text-neutral-900 mb-3">🏆 성과</h2>
-                  <p className="text-neutral-600 text-sm leading-relaxed">{project.achievements}</p>
+                <div className="bg-gradient-to-br from-emerald-50 to-white rounded-2xl p-6 shadow-sm border border-emerald-100">
+                  <h2 className="text-lg font-bold text-neutral-900 mb-3 flex items-center gap-2">
+                    <span className="text-xl">🏆</span> 성과
+                  </h2>
+                  <p className="text-neutral-600 text-sm leading-relaxed whitespace-pre-wrap">{project.achievements}</p>
                 </div>
               )}
             </div>
           )}
 
-          {/* Topics/Tags */}
+          {/* ========== Topics/Tags ========== */}
           {project.topics.length > 0 && (
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-neutral-100">
-              <h2 className="text-lg font-bold text-neutral-900 mb-4">토픽</h2>
+              <h2 className="text-lg font-bold text-neutral-900 mb-4">토픽 & 태그</h2>
               <div className="flex flex-wrap gap-2">
                 {project.topics.map((topic, i) => (
                   <span
@@ -1296,48 +1484,23 @@ function ProjectDetailPage({
             </div>
           )}
 
-          {/* GitHub Stats */}
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-neutral-100">
-            <h2 className="text-lg font-bold text-neutral-900 mb-4">프로젝트 정보</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="text-center p-4 bg-neutral-50 rounded-xl">
-                <Star className="w-5 h-5 mx-auto mb-2 text-yellow-500" />
-                <span className="text-2xl font-bold text-neutral-900">{project.stargazers_count || 0}</span>
-                <p className="text-xs text-neutral-500 mt-1">Stars</p>
-              </div>
-              <div className="text-center p-4 bg-neutral-50 rounded-xl">
-                <Calendar className="w-5 h-5 mx-auto mb-2 text-blue-500" />
-                <span className="text-lg font-bold text-neutral-900">{project.yearMonth}</span>
-                <p className="text-xs text-neutral-500 mt-1">시작일</p>
-              </div>
-              <div className="text-center p-4 bg-neutral-50 rounded-xl">
-                <Code2 className="w-5 h-5 mx-auto mb-2 text-green-500" />
-                <span className="text-lg font-bold text-neutral-900">{project.language || 'N/A'}</span>
-                <p className="text-xs text-neutral-500 mt-1">주 언어</p>
-              </div>
-              <div className="text-center p-4 bg-neutral-50 rounded-xl">
-                <Layers className="w-5 h-5 mx-auto mb-2 text-purple-500" />
-                <span className="text-2xl font-bold text-neutral-900">{project.technologies.length}</span>
-                <p className="text-xs text-neutral-500 mt-1">기술 스택</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Bottom CTA */}
+          {/* ========== Bottom CTA ========== */}
           <div className="bg-gradient-to-r from-neutral-900 to-neutral-800 rounded-2xl p-6 text-center">
             <p className="text-neutral-300 text-sm mb-4">
               더 자세한 내용은 GitHub에서 확인하세요
             </p>
-            <a
-              href={project.html_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-white text-neutral-900 font-medium rounded-xl hover:bg-neutral-100 transition-colors"
-            >
-              <Github className="w-5 h-5" />
-              GitHub에서 자세히 보기
-              <ArrowRight className="w-4 h-4" />
-            </a>
+            <div className="flex flex-wrap justify-center gap-3">
+              <a
+                href={project.html_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-white text-neutral-900 font-medium rounded-xl hover:bg-neutral-100 transition-colors"
+              >
+                <Github className="w-5 h-5" />
+                GitHub에서 자세히 보기
+                <ArrowRight className="w-4 h-4" />
+              </a>
+            </div>
           </div>
 
         </div>

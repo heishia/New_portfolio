@@ -1,0 +1,34 @@
+name: Update Repositories Cache
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Trigger repository refresh
+        run: |
+          response=$(curl -s -w "\n%{http_code}" -X POST "${{ secrets.API_URL }}/api/repos/refresh" \
+            -H "Authorization: Bearer ${{ secrets.API_SECRET }}" \
+            -H "Content-Type: application/json")
+          
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+          
+          echo "Response: $body"
+          echo "HTTP Status: $http_code"
+          
+          if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
+            echo "Refresh triggered successfully"
+          else
+            echo "Failed to trigger refresh"
+            exit 1
+          fi
+      
+      - name: Log completion
+        run: |
+          echo "Repository cache update completed at $(date -u)"

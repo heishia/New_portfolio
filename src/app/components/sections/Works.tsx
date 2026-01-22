@@ -1,50 +1,77 @@
-import React, { useRef, useState, useEffect } from 'react';
-import { motion, useMotionValue, useTransform, AnimatePresence, useSpring } from 'motion/react';
-import { ArrowRight, X, Hand, Search } from 'lucide-react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
+import { motion, useMotionValue, AnimatePresence, useSpring } from 'motion/react';
+import { ArrowRight, X, Hand, Search, RefreshCw, ExternalLink, Github } from 'lucide-react';
 
-// --- DATA & COLORS ---
+// --- API Configuration ---
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
-const baseProjects = [
+// --- Types ---
+interface Repository {
+  id: number;
+  name: string;
+  full_name: string;
+  description: string | null;
+  html_url: string;
+  language: string | null;
+  stargazers_count: number;
+  topics: string[];
+  title: string | null;
+  subtitle: string | null;
+  project_type: string[];
+  detailed_description: string | null;
+  features: Array<{ title: string; description: string }>;
+  technologies: Array<{ name: string; category: string; version?: string }>;
+  screenshots: Array<{ file: string; caption: string; url?: string; type?: string }>;
+  challenges: string | null;
+  achievements: string | null;
+  priority: number;
+  status: string;
+  demo_url: string | null;
+  has_portfolio_meta: boolean;
+}
+
+interface ProjectDisplay {
+  id: number;
+  uniqueId: string;
+  title: string;
+  category: string;
+  image: string;
+  year: string;
+  displayNumber: number;
+  spineColor: string;
+  textColor: string;
+  // Extended data
+  description: string | null;
+  html_url: string;
+  demo_url: string | null;
+  technologies: Array<{ name: string; category: string }>;
+  features: Array<{ title: string; description: string }>;
+  detailed_description: string | null;
+}
+
+// --- Fallback Data (shown when API unavailable) ---
+const fallbackProjects: ProjectDisplay[] = [
   {
     id: 1,
-    title: "Ethereal Spaces",
-    category: "Architecture",
-    image: "https://images.unsplash.com/photo-1755018237309-bb3f5efeb2c4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtaW5pbWFsaXN0JTIwYXJjaGl0ZWN0dXJlJTIwYmxhY2slMjBhbmQlMjB3aGl0ZXxlbnwxfHx8fDE3Njg3MTMzNDR8MA&ixlib=rb-4.1.0&q=80&w=1080",
-    year: "2024"
-  },
-  {
-    id: 2,
-    title: "Mono Object",
-    category: "Product Design",
-    image: "https://images.unsplash.com/photo-1658526064786-63d6e3603215?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtaW5pbWFsaXN0JTIwcHJvZHVjdCUyMGRlc2lnbnxlbnwxfHx8fDE3Njg2MzM5OTd8MA&ixlib=rb-4.1.0&q=80&w=1080",
-    year: "2023"
-  },
-  {
-    id: 3,
-    title: "Geometric Flow",
-    category: "Art Direction",
-    image: "https://images.unsplash.com/photo-1716363013751-78dc48b0403d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhYnN0cmFjdCUyMGdlb21ldHJpYyUyMHNoYXBlcyUyMG1pbmltYWxpc3Q8ZW58MXx8fHwxNzY4NjQ3NjU2fDA&ixlib=rb-4.1.0&q=80&w=1080",
-    year: "2024"
-  },
-  {
-    id: 4,
-    title: "Interior Void",
-    category: "Interior",
-    image: "https://images.unsplash.com/photo-1759038086962-13119e3da5bf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBpbnRlcmlvciUyMGRlc2lnbiUyMG1pbmltYWxpc3QlMjBibGFjayUyMGFuZCUyMHdoaXRlfGVufDF8fHx8MTc2ODcxMzM0OXww&ixlib=rb-4.1.0&q=80&w=1080",
-    year: "2023"
-  },
-  {
-    id: 5,
-    title: "Silent Forms",
-    category: "Photography",
-    image: "https://images.unsplash.com/photo-1507643179173-61b0f729435a?q=80&w=1080&auto=format&fit=crop",
-    year: "2022"
+    uniqueId: "fallback-1",
+    title: "Loading...",
+    category: "Portfolio",
+    image: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=800",
+    year: "2024",
+    displayNumber: 1,
+    spineColor: "#282828",
+    textColor: "#FFFFFF",
+    description: "Loading projects from GitHub...",
+    html_url: "#",
+    demo_url: null,
+    technologies: [],
+    features: [],
+    detailed_description: null,
   }
 ];
 
-// Generate smooth Sine Wave Gradient (White -> Dark -> White)
-const generateColorData = (index: number, total: number) => {
-  // Figma design uses specific color values for 40 items
+// --- Color Generation ---
+const generateColorData = (index: number) => {
   const colors = [
     '#e6e6e6', '#e4e4e4', '#e1e1e1', '#dcdcdc', '#d4d4d4',
     '#cbcbcb', '#c1c1c1', '#b5b5b5', '#a8a8a8', '#9a9a9a',
@@ -57,8 +84,6 @@ const generateColorData = (index: number, total: number) => {
   ];
 
   const spineColor = colors[index % colors.length];
-
-  // Parse hex to get lightness
   const hex = spineColor.replace('#', '');
   const r = parseInt(hex.substring(0, 2), 16);
   const g = parseInt(hex.substring(2, 4), 16);
@@ -71,43 +96,138 @@ const generateColorData = (index: number, total: number) => {
   };
 };
 
-// Create enough items to form a nice circle
+// --- Constants ---
 const ITEM_COUNT = 40;
-const ITEM_WIDTH = 60; // Width of each spine in px
-const GAP = 10; // Gap between spines
-const DESKTOP_RADIUS = 500; // Radius for medium desktop (769px-1279px)
-const LARGE_DESKTOP_RADIUS = 800; // Radius for large desktop (≥1280px) - wider utilization
-
-// Mobile: Calculate radius to fit exactly 4 spines in viewport
-// Formula: For 4 items visible, we need circumference = 4 * (ITEM_WIDTH + GAP)
-// Then radius = circumference / (2 * PI)
+const ITEM_WIDTH = 60;
+const GAP = 10;
+const DESKTOP_RADIUS = 500;
+const LARGE_DESKTOP_RADIUS = 800;
 const MOBILE_VISIBLE_COUNT = 4;
 const MOBILE_RADIUS = (MOBILE_VISIBLE_COUNT * (ITEM_WIDTH + GAP)) / (2 * Math.PI);
 
-const projects = Array(ITEM_COUNT).fill(baseProjects).flat().slice(0, ITEM_COUNT).map((p, i) => {
-  const { spineColor, textColor } = generateColorData(i, ITEM_COUNT);
-  return {
-    ...p,
-    uniqueId: `${p.id}-${i}`,
-    // Sequential numbering (1, 2, 3... 40)
-    displayNumber: i + 1,
-    // Alternating years 2025 / 2026
-    year: i % 2 === 0 ? "2025" : "2026",
-    spineColor,
-    textColor
-  };
-});
+// --- Helper Functions ---
+const transformReposToProjects = (repos: Repository[]): ProjectDisplay[] => {
+  if (repos.length === 0) return fallbackProjects;
+
+  // Create display items, repeating if needed to fill ITEM_COUNT
+  const displayItems: ProjectDisplay[] = [];
+  
+  for (let i = 0; i < ITEM_COUNT; i++) {
+    const repo = repos[i % repos.length];
+    const { spineColor, textColor } = generateColorData(i);
+    
+    // Get first screenshot URL or use placeholder
+    const mainScreenshot = repo.screenshots?.[0];
+    const imageUrl = mainScreenshot?.url || 
+      `https://opengraph.githubassets.com/1/${repo.full_name}`;
+    
+    // Determine category from project_type or language
+    const category = repo.project_type?.[0] || repo.language || 'Project';
+    
+    // Extract year from repo creation or use current year
+    const year = new Date().getFullYear().toString();
+    
+    displayItems.push({
+      id: repo.id,
+      uniqueId: `${repo.id}-${i}`,
+      title: repo.title || repo.name,
+      category: category.charAt(0).toUpperCase() + category.slice(1),
+      image: imageUrl,
+      year,
+      displayNumber: i + 1,
+      spineColor,
+      textColor,
+      description: repo.description,
+      html_url: repo.html_url,
+      demo_url: repo.demo_url,
+      technologies: repo.technologies || [],
+      features: repo.features || [],
+      detailed_description: repo.detailed_description,
+    });
+  }
+  
+  return displayItems;
+};
 
 export function Works() {
+  // API Data State
+  const [repositories, setRepositories] = useState<Repository[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
   // Rotation State
   const rotation = useMotionValue(0);
   const smoothRotation = useSpring(rotation, { damping: 40, stiffness: 200 });
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  // Responsive radius based on screen size
+  // Responsive state
   const [isMobile, setIsMobile] = useState(false);
   const [isLargeDesktop, setIsLargeDesktop] = useState(false);
 
+  // Dragging State
+  const isDragging = useRef(false);
+  const startX = useRef(0);
+  const startRotation = useRef(0);
+  const hasMoved = useRef(false);
+
+  // UI State
+  const [activeProject, setActiveProject] = useState<ProjectDisplay | null>(null);
+  const [showHint, setShowHint] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Computed projects
+  const projects = transformReposToProjects(repositories);
+  
+  // Filtered projects based on search
+  const filteredProjects = searchQuery.trim()
+    ? projects.filter(p =>
+        p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.technologies.some(t => t.name.toLowerCase().includes(searchQuery.toLowerCase()))
+      )
+    : projects;
+
+  // Fetch repositories from API
+  const fetchRepositories = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/repos`);
+      if (!response.ok) throw new Error('Failed to fetch repositories');
+      
+      const data = await response.json();
+      setRepositories(data.repositories || []);
+      setError(null);
+    } catch (err) {
+      console.error('Failed to fetch repositories:', err);
+      setError('Failed to load projects');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Refresh repositories
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/repos/refresh`, {
+        method: 'POST',
+      });
+      
+      if (!response.ok) throw new Error('Failed to refresh');
+      
+      // Refetch after refresh
+      await fetchRepositories();
+    } catch (err) {
+      console.error('Failed to refresh:', err);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [fetchRepositories]);
+
+  // Initial fetch
+  useEffect(() => {
+    fetchRepositories();
+  }, [fetchRepositories]);
+
+  // Screen size detection
   useEffect(() => {
     const checkScreenSize = () => {
       setIsMobile(window.innerWidth <= 768);
@@ -119,36 +239,7 @@ export function Works() {
     return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
 
-  // Dragging State
-  const isDragging = useRef(false);
-  const startX = useRef(0);
-  const startRotation = useRef(0);
-  // Track if actual movement occurred to distinguish click vs drag
-  const hasMoved = useRef(false);
-
-  // Active Project (Expanded)
-  const [activeProject, setActiveProject] = useState<typeof projects[0] | null>(null);
-  const [showHint, setShowHint] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filteredProjects, setFilteredProjects] = useState(projects);
-
-  // Filter projects based on search
-  useEffect(() => {
-    if (!searchQuery.trim()) {
-      setFilteredProjects(projects);
-      return;
-    }
-
-    const query = searchQuery.toLowerCase();
-    const filtered = projects.filter(p =>
-      p.title.toLowerCase().includes(query) ||
-      p.category.toLowerCase().includes(query) ||
-      p.year.includes(query)
-    );
-    setFilteredProjects(filtered);
-  }, [searchQuery]);
-
-  // Handlers
+  // Mouse handlers
   const onMouseDown = (e: React.MouseEvent) => {
     isDragging.current = true;
     hasMoved.current = false;
@@ -159,28 +250,20 @@ export function Works() {
 
   const onMouseMove = (e: React.MouseEvent) => {
     if (!isDragging.current) return;
-
     const delta = e.pageX - startX.current;
-
-    // Only consider it a "move" if dragged more than 5px
-    if (Math.abs(delta) > 5) {
-      hasMoved.current = true;
-    }
-
-    // Sensitivity factor: 0.2 degrees per pixel
+    if (Math.abs(delta) > 5) hasMoved.current = true;
     rotation.set(startRotation.current + delta * 0.2);
   };
 
   const onMouseUp = () => {
     isDragging.current = false;
-    // We do NOT reset hasMoved here, we need it for the onClick check
   };
 
   const onMouseLeave = () => {
     isDragging.current = false;
   };
 
-  // Touch handlers for mobile
+  // Touch handlers
   const onTouchStart = (e: React.TouchEvent) => {
     isDragging.current = true;
     hasMoved.current = false;
@@ -191,13 +274,8 @@ export function Works() {
 
   const onTouchMove = (e: React.TouchEvent) => {
     if (!isDragging.current) return;
-
     const delta = e.touches[0].pageX - startX.current;
-
-    if (Math.abs(delta) > 5) {
-      hasMoved.current = true;
-    }
-
+    if (Math.abs(delta) > 5) hasMoved.current = true;
     rotation.set(startRotation.current + delta * 0.2);
   };
 
@@ -217,28 +295,37 @@ export function Works() {
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
     >
-      {/* Background/Context - Separated Top Block */}
+      {/* Header */}
       <div className="w-full text-center pointer-events-none z-10 shrink-0 pt-12 md:pt-16 pb-4 md:pb-6">
         <h2 className="text-[12vw] md:text-[8vw] 2xl:text-[5vw] font-bold text-[#E5E5E5] leading-none tracking-tighter" style={{ fontFamily: "'Inter', sans-serif" }}>
           PORTFOLIO
         </h2>
       </div>
 
-      {/* 3D SCENE CONTAINER - Takes remaining space */}
+      {/* 3D Scene Container */}
       <div className="relative flex-1 2xl:flex-none w-full flex items-start justify-center cursor-grab active:cursor-grabbing pt-8 md:pt-12 pb-8 md:pb-12 2xl:pt-8 2xl:pb-8">
+        
+        {/* Loading State */}
+        {loading && (
+          <div className="absolute inset-0 flex items-center justify-center z-40">
+            <div className="flex flex-col items-center gap-4">
+              <RefreshCw className="w-8 h-8 animate-spin text-neutral-400" />
+              <span className="text-sm text-neutral-500 font-mono">Loading projects...</span>
+            </div>
+          </div>
+        )}
 
-        {/* ROTATING CYLINDER */}
+        {/* Rotating Cylinder */}
         <motion.div
           className="relative [transform-style:preserve-3d] h-[55vh] md:h-[60vh] 2xl:h-[45vh] w-[60px] pointer-events-none"
           style={{
             rotateY: smoothRotation,
-            scale: isMobile ? 1.5 : 1
+            scale: isMobile ? 1.5 : 1,
+            opacity: loading ? 0.3 : 1,
           }}
         >
           {filteredProjects.map((project, i) => {
-            // Calculate angle for each item
             const angle = (360 / ITEM_COUNT) * i;
-
             return (
               <Spine3D
                 key={project.uniqueId}
@@ -246,7 +333,6 @@ export function Works() {
                 angle={angle}
                 radius={isMobile ? MOBILE_RADIUS : (isLargeDesktop ? LARGE_DESKTOP_RADIUS : DESKTOP_RADIUS)}
                 onSelect={() => {
-                  // Only select if we haven't dragged
                   if (!hasMoved.current) {
                     setActiveProject(project);
                   }
@@ -256,9 +342,9 @@ export function Works() {
           })}
         </motion.div>
 
-        {/* DRAG HINT - Positioned over cylinder */}
+        {/* Drag Hint */}
         <AnimatePresence>
-          {showHint && (
+          {showHint && !loading && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -270,10 +356,9 @@ export function Works() {
             </motion.div>
           )}
         </AnimatePresence>
-
       </div>
 
-      {/* SEARCH BAR - Bottom position with more spacing */}
+      {/* Search Bar & Controls */}
       <div className="w-full px-6 pointer-events-auto z-20 shrink-0 pb-12 md:pb-16 2xl:pt-12 2xl:pb-16">
         <div className="max-w-lg mx-auto">
           <motion.div
@@ -291,7 +376,7 @@ export function Works() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search"
-                className="w-full pl-14 pr-14 py-5 md:py-6 2xl:py-5 bg-transparent text-[15px] 2xl:text-xl placeholder:text-neutral-400 focus:outline-none"
+                className="w-full pl-14 pr-24 py-5 md:py-6 2xl:py-5 bg-transparent text-[15px] 2xl:text-xl placeholder:text-neutral-400 focus:outline-none"
                 style={{ fontFamily: "'Inter', sans-serif" }}
                 onMouseDown={(e) => e.stopPropagation()}
                 onMouseMove={(e) => e.stopPropagation()}
@@ -300,6 +385,21 @@ export function Works() {
                 onTouchMove={(e) => e.stopPropagation()}
                 onTouchEnd={(e) => e.stopPropagation()}
               />
+              
+              {/* Refresh Button */}
+              <button
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="absolute right-4 flex items-center justify-center w-8 h-8 rounded-full bg-neutral-100 hover:bg-neutral-200 transition-colors disabled:opacity-50"
+                onMouseDown={(e) => e.stopPropagation()}
+                onMouseMove={(e) => e.stopPropagation()}
+                onMouseUp={(e) => e.stopPropagation()}
+                title="Refresh from GitHub"
+              >
+                <RefreshCw className={`w-4 h-4 text-neutral-600 ${refreshing ? 'animate-spin' : ''}`} />
+              </button>
+              
+              {/* Clear Search Button */}
               <AnimatePresence>
                 {searchQuery && (
                   <motion.button
@@ -307,7 +407,7 @@ export function Works() {
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.8 }}
                     onClick={() => setSearchQuery('')}
-                    className="absolute right-4 flex items-center justify-center w-6 h-6 rounded-full bg-neutral-200 hover:bg-neutral-300 transition-colors"
+                    className="absolute right-14 flex items-center justify-center w-6 h-6 rounded-full bg-neutral-200 hover:bg-neutral-300 transition-colors"
                     onMouseDown={(e) => e.stopPropagation()}
                     onMouseMove={(e) => e.stopPropagation()}
                     onMouseUp={(e) => e.stopPropagation()}
@@ -343,6 +443,7 @@ export function Works() {
             ))}
           </motion.div>
 
+          {/* No Results Message */}
           <AnimatePresence>
             {filteredProjects.length === 0 && searchQuery && (
               <motion.p
@@ -356,10 +457,15 @@ export function Works() {
               </motion.p>
             )}
           </AnimatePresence>
+
+          {/* Error Message */}
+          {error && (
+            <p className="text-center text-sm text-red-500 mt-3">{error}</p>
+          )}
         </div>
       </div>
 
-      {/* ACTIVE PROJECT OVERLAY (Modal) */}
+      {/* Project Modal */}
       <AnimatePresence>
         {activeProject && (
           <motion.div
@@ -368,7 +474,6 @@ export function Works() {
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-12 bg-black/60 backdrop-blur-sm"
             onClick={() => setActiveProject(null)}
-            // Stop propagation to prevent background rotation while interacting with modal
             onMouseDown={(e) => e.stopPropagation()}
             onMouseMove={(e) => e.stopPropagation()}
             onMouseUp={(e) => e.stopPropagation()}
@@ -384,6 +489,9 @@ export function Works() {
                   src={activeProject.image}
                   alt={activeProject.title}
                   className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.src = `https://opengraph.githubassets.com/1/${activeProject.title}`;
+                  }}
                 />
                 <button
                   onClick={(e) => {
@@ -397,7 +505,7 @@ export function Works() {
               </div>
 
               {/* Content Side */}
-              <div className="w-full md:w-1/3 h-1/2 md:h-full p-8 flex flex-col justify-between bg-white relative z-10">
+              <div className="w-full md:w-1/3 h-1/2 md:h-full p-8 flex flex-col justify-between bg-white relative z-10 overflow-y-auto">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -412,18 +520,54 @@ export function Works() {
                   <span className="inline-block px-3 py-1 mb-4 text-xs font-mono bg-neutral-100 text-neutral-600 rounded-full">
                     {activeProject.category}
                   </span>
-                  <h3 className="text-3xl font-bold mb-2" style={{ fontFamily: "'Montserrat', sans-serif" }}>{activeProject.title}</h3>
+                  <h3 className="text-3xl font-bold mb-2" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+                    {activeProject.title}
+                  </h3>
                   <p className="text-neutral-500 font-mono text-sm">{activeProject.year}</p>
+                  
+                  {/* Technologies */}
+                  {activeProject.technologies.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-4">
+                      {activeProject.technologies.slice(0, 5).map((tech, i) => (
+                        <span key={i} className="px-2 py-0.5 text-[10px] bg-neutral-50 text-neutral-500 rounded">
+                          {tech.name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
-                <div>
+                <div className="mt-4">
                   <p className="text-neutral-600 text-sm leading-relaxed mb-8">
-                    An exploration of form and void, capturing the essence of minimal design through spatial awareness.
+                    {activeProject.detailed_description || activeProject.description || 
+                      "An exploration of form and void, capturing the essence of minimal design through spatial awareness."}
                   </p>
-                  <button className="w-full py-4 bg-black text-white text-sm font-mono uppercase tracking-widest hover:bg-neutral-800 transition-colors flex items-center justify-center gap-2 group">
-                    View Project
-                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                  </button>
+                  
+                  {/* Action Buttons */}
+                  <div className="flex flex-col gap-2">
+                    <a 
+                      href={activeProject.html_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full py-4 bg-black text-white text-sm font-mono uppercase tracking-widest hover:bg-neutral-800 transition-colors flex items-center justify-center gap-2 group"
+                    >
+                      <Github className="w-4 h-4" />
+                      View on GitHub
+                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    </a>
+                    
+                    {activeProject.demo_url && (
+                      <a
+                        href={activeProject.demo_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full py-4 bg-neutral-100 text-neutral-800 text-sm font-mono uppercase tracking-widest hover:bg-neutral-200 transition-colors flex items-center justify-center gap-2"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                        Live Demo
+                      </a>
+                    )}
+                  </div>
                 </div>
               </div>
             </motion.div>
@@ -434,7 +578,7 @@ export function Works() {
   );
 }
 
-function Spine3D({ project, angle, radius, onSelect }: { project: any, angle: number, radius: number, onSelect: () => void }) {
+function Spine3D({ project, angle, radius, onSelect }: { project: ProjectDisplay, angle: number, radius: number, onSelect: () => void }) {
   return (
     <div
       onClick={onSelect}

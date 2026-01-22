@@ -16,4 +16,6 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  // Reference public folder for media files
+  publicDir: path.resolve(__dirname, './public'),
 })

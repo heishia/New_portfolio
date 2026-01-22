@@ -19,17 +19,22 @@ async def init_db() -> None:
     try:
         # Remove query params (like sslmode) - asyncpg handles SSL separately
         dsn = settings.database_url.split('?')[0]
+        # Replace localhost with 127.0.0.1 to avoid DNS resolution issues on Windows
+        dsn = dsn.replace('@localhost:', '@127.0.0.1:')
         ssl_setting = False if settings.app_env == "dev" else "prefer"
+        
+        print(f"Connecting to database: {dsn[:dsn.find('@')]}@***")
         
         _pool = await asyncpg.create_pool(
             dsn,
-            min_size=2,
+            min_size=1,
             max_size=10,
             ssl=ssl_setting,
+            command_timeout=60,
         )
-        logger.info("Database connection pool initialized")
+        print("Database connection pool initialized successfully!")
     except Exception as e:
-        logger.error(f"Failed to connect to database: {e}")
+        print(f"Failed to connect to database: {e}")
         raise
 
 

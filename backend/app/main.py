@@ -21,9 +21,8 @@ def create_app() -> FastAPI:
     """Create and configure FastAPI application."""
     settings = get_settings()
     
-    # #region agent log
-    import json; open(r'c:\Dev\new_folio\.cursor\debug.log','a').write(json.dumps({"location":"main.py:create_app","message":"CORS config","data":{"cors_origins":settings.cors_origins_list},"timestamp":__import__('time').time()*1000,"sessionId":"debug-session","hypothesisId":"H1"})+'\n')
-    # #endregion
+    # Debug: print CORS origins
+    print(f"CORS origins configured: {settings.cors_origins_list}")
     
     app = FastAPI(
         title="Portfolio API",

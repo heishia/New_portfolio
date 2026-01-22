@@ -15,7 +15,7 @@ export function About() {
           viewport={{ once: true }}
           transition={{ duration: 1 }}
         >
-          <span className="text-[30px] md:text-4xl 2xl:text-5xl uppercase tracking-widest block text-gray-400">02 / About</span>
+          <span className="text-[30px] md:text-4xl 2xl:text-4xl uppercase tracking-widest block text-gray-400">02 / About</span>
         </motion.div>
 
         {/* Content Grid */}
@@ -34,7 +34,7 @@ export function About() {
 
           <div className="flex flex-col justify-center order-1 md:order-2">
             <motion.h2
-              className="text-3xl md:text-4xl lg:text-5xl 2xl:text-7xl font-bold text-gray-900 mb-8 md:mb-12"
+              className="text-3xl md:text-4xl lg:text-5xl 2xl:text-5xl font-bold text-gray-900 mb-8 md:mb-12"
               style={{ fontFamily: 'Montserrat, sans-serif' }}
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -45,7 +45,7 @@ export function About() {
             </motion.h2>
 
             <motion.p
-              className="text-base md:text-lg lg:text-xl 2xl:text-3xl font-light leading-relaxed text-gray-600"
+              className="text-base md:text-lg lg:text-xl 2xl:text-xl font-light leading-relaxed text-gray-600"
               initial={{ opacity: 0, y: 50 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}

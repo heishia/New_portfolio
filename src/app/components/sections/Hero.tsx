@@ -29,16 +29,16 @@ export function Hero() {
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
         >
-          <h1 className="font-sans text-[7.5vw] md:text-[6vw] lg:text-[7.5vw] 2xl:text-[9vw] font-bold tracking-[0.05em] uppercase leading-none text-center mix-blend-difference">
+          <h1 className="font-sans text-[7.5vw] md:text-[6vw] lg:text-[7.5vw] 2xl:text-[7.5vw] font-bold tracking-[0.05em] uppercase leading-none text-center mix-blend-difference">
             KIMPPOP
           </h1>
-          <span className="font-sans text-sm md:text-lg lg:text-2xl 2xl:text-4xl absolute -right-8 md:-right-12 lg:-right-16 2xl:-right-20 top-0 md:top-1 lg:top-2 2xl:top-4 text-gray-400">(DEV)</span>
+          <span className="font-sans text-sm md:text-lg lg:text-2xl 2xl:text-2xl absolute -right-8 md:-right-12 lg:-right-16 2xl:-right-16 top-0 md:top-1 lg:top-2 2xl:top-2 text-gray-400">(DEV)</span>
         </motion.div>
       </div>
 
       {/* Nav Row */}
       {/* Nav Row */}
-      <div className="w-full flex flex-col md:grid md:grid-cols-5 gap-6 md:gap-4 border-t border-gray-200 pt-6 md:pt-4 text-3xl md:text-2xl 2xl:text-4xl font-sans uppercase tracking-wide mb-8 md:mb-0">
+      <div className="w-full flex flex-col md:grid md:grid-cols-5 gap-6 md:gap-4 border-t border-gray-200 pt-6 md:pt-4 text-3xl md:text-2xl 2xl:text-2xl font-sans uppercase tracking-wide mb-8 md:mb-0">
         {navItems.map((item, index) => (
           <motion.div
             key={item.id}
@@ -67,16 +67,16 @@ export function Hero() {
             transition={{ delay: 1.4, duration: 1 }}
           >
             <a href="https://threads.net" target="_blank" rel="noopener noreferrer" className="hover:opacity-60 transition-opacity">
-              <FaThreads className="w-6 h-6 md:w-7 md:h-7 2xl:w-12 2xl:h-12 text-black" />
+              <FaThreads className="w-6 h-6 md:w-7 md:h-7 2xl:w-8 2xl:h-8 text-black" />
             </a>
             <a href="https://youtube.com" target="_blank" rel="noopener noreferrer" className="hover:opacity-60 transition-opacity">
-              <FaYoutube className="w-6 h-6 md:w-7 md:h-7 2xl:w-12 2xl:h-12 text-black" />
+              <FaYoutube className="w-6 h-6 md:w-7 md:h-7 2xl:w-8 2xl:h-8 text-black" />
             </a>
             <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="hover:opacity-60 transition-opacity">
-              <FaGithub className="w-6 h-6 md:w-7 md:h-7 2xl:w-12 2xl:h-12 text-black" />
+              <FaGithub className="w-6 h-6 md:w-7 md:h-7 2xl:w-8 2xl:h-8 text-black" />
             </a>
             <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="hover:opacity-60 transition-opacity">
-              <FaLinkedin className="w-6 h-6 md:w-7 md:h-7 2xl:w-12 2xl:h-12 text-black" />
+              <FaLinkedin className="w-6 h-6 md:w-7 md:h-7 2xl:w-8 2xl:h-8 text-black" />
             </a>
           </motion.div>
         </div>
@@ -89,7 +89,7 @@ export function Hero() {
           </div>
 
           <motion.div
-            className="absolute -bottom-6 md:-bottom-10 text-[9px] md:text-[10px] 2xl:text-sm uppercase tracking-wider opacity-60 hidden md:block"
+            className="absolute -bottom-6 md:-bottom-10 text-[9px] md:text-[10px] 2xl:text-[11px] uppercase tracking-wider opacity-60 hidden md:block"
             initial={{ opacity: 0 }}
             animate={{ opacity: 0.6 }}
             transition={{ delay: 2 }}
@@ -100,12 +100,12 @@ export function Hero() {
 
         {/* Right Text */}
         <motion.div
-          className="order-3 md:order-3 md:col-span-3 text-[10px] md:text-xs 2xl:text-xl leading-relaxed uppercase w-full md:max-w-[240px] 2xl:max-w-[420px] md:text-right md:justify-self-end mt-4 md:mt-0"
+          className="order-3 md:order-3 md:col-span-3 text-[10px] md:text-xs 2xl:text-sm leading-relaxed uppercase w-full md:max-w-[240px] 2xl:max-w-[280px] md:text-right md:justify-self-end mt-4 md:mt-0"
           initial={{ opacity: 0, x: 50 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 1.4, duration: 1 }}
         >
-          <div className="mb-2 md:mb-4 text-xl md:text-2xl 2xl:text-5xl flex md:justify-end">✦</div>
+          <div className="mb-2 md:mb-4 text-xl md:text-2xl 2xl:text-3xl flex md:justify-end">✦</div>
           <p className="md:text-right max-w-[80%] md:max-w-full">
             Web, App, Automation, and Desktop Software. Building everything from scratch.
           </p>

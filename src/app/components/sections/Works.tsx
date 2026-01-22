@@ -683,176 +683,306 @@ export function Works() {
           >
             <motion.div
               layoutId={`card-${activeProject.uniqueId}`}
-              className="bg-white w-full max-w-4xl h-[80vh] rounded-lg shadow-2xl overflow-hidden flex flex-col md:flex-row cursor-auto"
+              className="bg-white w-full max-w-4xl h-[80vh] rounded-lg shadow-2xl overflow-hidden cursor-auto"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Image Side */}
-              <div className="w-full md:w-2/3 h-1/2 md:h-full relative bg-neutral-100">
-                <img
-                  src={activeProject.image}
-                  alt={activeProject.title}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    e.currentTarget.src = `https://opengraph.githubassets.com/1/${activeProject.title}`;
-                  }}
-                />
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setActiveProject(null);
-                    setShowDetail(false);
-                  }}
-                  className="absolute top-4 left-4 md:hidden w-10 h-10 bg-white/20 backdrop-blur rounded-full flex items-center justify-center text-white z-20"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* Content Side */}
-              <div className="w-full md:w-1/3 h-1/2 md:h-full p-8 flex flex-col justify-between bg-white relative z-10 overflow-y-auto">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setActiveProject(null);
-                    setShowDetail(false);
-                  }}
-                  className="absolute top-6 right-6 hidden md:flex w-10 h-10 bg-neutral-100 hover:bg-neutral-200 rounded-full items-center justify-center transition-colors z-20 cursor-pointer"
-                >
-                  <X className="w-5 h-5 text-neutral-600" />
-                </button>
-
-                <div>
-                  <span className="inline-block px-3 py-1 mb-4 text-xs font-mono bg-neutral-100 text-neutral-600 rounded-full">
-                    {activeProject.category}
-                  </span>
-                  <h3 className="text-3xl font-bold mb-2" style={{ fontFamily: "'Montserrat', sans-serif" }}>
-                    {activeProject.title}
-                  </h3>
-                  <p className="text-neutral-500 font-mono text-sm">{activeProject.yearMonth}</p>
-                  
-                  {/* Project Tags (Topics + Project Type) */}
-                  {(activeProject.project_type.length > 0 || activeProject.topics.length > 0) && (
-                    <div className="flex flex-wrap gap-1 mt-3">
-                      {activeProject.project_type.map((type, i) => (
-                        <button
-                          key={`type-${i}`}
-                          onClick={() => { setActiveProject(null); setSearchQuery(type); }}
-                          className="px-2 py-0.5 text-[10px] bg-black text-white rounded hover:bg-neutral-800 cursor-pointer transition-colors"
-                        >
-                          {type}
-                        </button>
-                      ))}
-                      {activeProject.topics.slice(0, 3).map((topic, i) => (
-                        <button
-                          key={`topic-${i}`}
-                          onClick={() => { setActiveProject(null); setSearchQuery(topic); }}
-                          className="px-2 py-0.5 text-[10px] bg-neutral-200 text-neutral-600 rounded hover:bg-neutral-300 cursor-pointer transition-colors"
-                        >
-                          {topic}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  
-                  {/* Technologies */}
-                  {activeProject.technologies.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {activeProject.technologies.slice(0, 5).map((tech, i) => (
-                        <button
-                          key={i}
-                          onClick={() => { setActiveProject(null); setSearchQuery(tech.name); }}
-                          className="px-2 py-0.5 text-[10px] bg-neutral-50 text-neutral-500 rounded hover:bg-neutral-100 cursor-pointer transition-colors"
-                        >
-                          {tech.name}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div className="mt-4">
-                  <p className="text-neutral-600 text-sm leading-relaxed mb-8">
-                    {activeProject.detailed_description || activeProject.description || 
-                      "An exploration of form and void, capturing the essence of minimal design through spatial awareness."}
-                  </p>
-                  
-                  {/* Action Buttons */}
-                  <div className="flex flex-col gap-2">
-                    <button
-                      onClick={() => setShowDetail(!showDetail)}
-                      className="w-full py-4 bg-neutral-100 text-neutral-800 text-sm font-mono uppercase tracking-widest hover:bg-neutral-200 transition-colors flex items-center justify-center gap-2"
-                    >
-                      <Eye className="w-4 h-4" />
-                      {showDetail ? 'Hide Detail' : 'View Detail'}
-                    </button>
-                    
-                    <a 
-                      href={activeProject.html_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full py-4 bg-black text-white text-sm font-mono uppercase tracking-widest hover:bg-neutral-800 transition-colors flex items-center justify-center gap-2 group"
-                    >
-                      <Github className="w-4 h-4" />
-                      View on GitHub
-                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                    </a>
-                    
-                    {activeProject.demo_url && (
-                      <a
-                        href={activeProject.demo_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="w-full py-4 bg-neutral-100 text-neutral-800 text-sm font-mono uppercase tracking-widest hover:bg-neutral-200 transition-colors flex items-center justify-center gap-2"
+              <AnimatePresence mode="wait">
+                {!showDetail ? (
+                  /* Overview Screen */
+                  <motion.div
+                    key="overview"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    transition={{ duration: 0.2 }}
+                    className="w-full h-full flex flex-col md:flex-row"
+                  >
+                    {/* Image Side */}
+                    <div className="w-full md:w-2/3 h-1/2 md:h-full relative bg-neutral-100">
+                      <img
+                        src={activeProject.image}
+                        alt={activeProject.title}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.src = `https://opengraph.githubassets.com/1/${activeProject.title}`;
+                        }}
+                      />
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveProject(null);
+                          setShowDetail(false);
+                        }}
+                        className="absolute top-4 left-4 md:hidden w-10 h-10 bg-white/20 backdrop-blur rounded-full flex items-center justify-center text-white z-20"
                       >
-                        <ExternalLink className="w-4 h-4" />
-                        Live Demo
-                      </a>
-                    )}
-                  </div>
-                  
-                  {/* Expanded Detail Section */}
-                  <AnimatePresence>
-                    {showDetail && activeProject.features.length > 0 && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="overflow-hidden"
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    {/* Content Side */}
+                    <div className="w-full md:w-1/3 h-1/2 md:h-full p-8 flex flex-col justify-between bg-white relative z-10 overflow-y-auto">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveProject(null);
+                          setShowDetail(false);
+                        }}
+                        className="absolute top-6 right-6 hidden md:flex w-10 h-10 bg-neutral-100 hover:bg-neutral-200 rounded-full items-center justify-center transition-colors z-20 cursor-pointer"
                       >
-                        <div className="pt-4 mt-4 border-t border-neutral-100">
-                          <h4 className="text-xs font-mono uppercase tracking-wider text-neutral-500 mb-3">Features</h4>
-                          <ul className="space-y-2">
-                            {activeProject.features.map((feature, i) => (
-                              <li key={i} className="text-sm text-neutral-600">
-                                <span className="font-medium">{feature.title}</span>
-                                {feature.description && (
-                                  <span className="text-neutral-400"> — {feature.description}</span>
-                                )}
-                              </li>
+                        <X className="w-5 h-5 text-neutral-600" />
+                      </button>
+
+                      <div>
+                        <span className="inline-block px-3 py-1 mb-4 text-xs font-mono bg-neutral-100 text-neutral-600 rounded-full">
+                          {activeProject.category}
+                        </span>
+                        <h3 className="text-3xl font-bold mb-2" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+                          {activeProject.title}
+                        </h3>
+                        <p className="text-neutral-500 font-mono text-sm">{activeProject.yearMonth}</p>
+                        
+                        {/* Project Tags (Topics + Project Type) */}
+                        {(activeProject.project_type.length > 0 || activeProject.topics.length > 0) && (
+                          <div className="flex flex-wrap gap-1 mt-3">
+                            {activeProject.project_type.map((type, i) => (
+                              <button
+                                key={`type-${i}`}
+                                onClick={() => { setActiveProject(null); setSearchQuery(type); }}
+                                className="px-2 py-0.5 text-[10px] bg-black text-white rounded hover:bg-neutral-800 cursor-pointer transition-colors"
+                              >
+                                {type}
+                              </button>
                             ))}
-                          </ul>
+                            {activeProject.topics.slice(0, 3).map((topic, i) => (
+                              <button
+                                key={`topic-${i}`}
+                                onClick={() => { setActiveProject(null); setSearchQuery(topic); }}
+                                className="px-2 py-0.5 text-[10px] bg-neutral-200 text-neutral-600 rounded hover:bg-neutral-300 cursor-pointer transition-colors"
+                              >
+                                {topic}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        
+                        {/* Technologies */}
+                        {activeProject.technologies.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {activeProject.technologies.slice(0, 5).map((tech, i) => (
+                              <button
+                                key={i}
+                                onClick={() => { setActiveProject(null); setSearchQuery(tech.name); }}
+                                className="px-2 py-0.5 text-[10px] bg-neutral-50 text-neutral-500 rounded hover:bg-neutral-100 cursor-pointer transition-colors"
+                              >
+                                {tech.name}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="mt-4">
+                        <p className="text-neutral-600 text-sm leading-relaxed mb-8">
+                          {activeProject.detailed_description || activeProject.description || 
+                            "An exploration of form and void, capturing the essence of minimal design through spatial awareness."}
+                        </p>
+                        
+                        {/* Action Buttons */}
+                        <div className="flex flex-col gap-2">
+                          <button
+                            onClick={() => setShowDetail(true)}
+                            className="w-full py-4 bg-neutral-100 text-neutral-800 text-sm font-mono uppercase tracking-widest hover:bg-neutral-200 transition-colors flex items-center justify-center gap-2"
+                          >
+                            <Eye className="w-4 h-4" />
+                            View Detail
+                            <ArrowRight className="w-4 h-4" />
+                          </button>
+                          
+                          <a 
+                            href={activeProject.html_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-full py-4 bg-black text-white text-sm font-mono uppercase tracking-widest hover:bg-neutral-800 transition-colors flex items-center justify-center gap-2 group"
+                          >
+                            <Github className="w-4 h-4" />
+                            View on GitHub
+                            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                          </a>
+                          
+                          {activeProject.demo_url && (
+                            <a
+                              href={activeProject.demo_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="w-full py-4 bg-neutral-100 text-neutral-800 text-sm font-mono uppercase tracking-widest hover:bg-neutral-200 transition-colors flex items-center justify-center gap-2"
+                            >
+                              <ExternalLink className="w-4 h-4" />
+                              Live Demo
+                            </a>
+                          )}
                         </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                  
-                  {/* Navigation Info */}
-                  {repositories.length > 1 && (
-                    <div className="mt-6 pt-4 border-t border-neutral-100">
-                      <div className="flex items-center justify-between text-xs text-neutral-400">
-                        <span className="font-mono">
-                          {repositories.findIndex(repo => repo.id === activeProject.id) + 1} / {repositories.length}
-                        </span>
-                        <span className="hidden md:flex items-center gap-2">
-                          <kbd className="px-2 py-1 bg-neutral-100 rounded text-[10px]">←</kbd>
-                          <kbd className="px-2 py-1 bg-neutral-100 rounded text-[10px]">→</kbd>
-                          <span>to navigate</span>
-                        </span>
+                        
+                        {/* Navigation Info */}
+                        {repositories.length > 1 && (
+                          <div className="mt-6 pt-4 border-t border-neutral-100">
+                            <div className="flex items-center justify-between text-xs text-neutral-400">
+                              <span className="font-mono">
+                                {repositories.findIndex(repo => repo.id === activeProject.id) + 1} / {repositories.length}
+                              </span>
+                              <span className="hidden md:flex items-center gap-2">
+                                <kbd className="px-2 py-1 bg-neutral-100 rounded text-[10px]">←</kbd>
+                                <kbd className="px-2 py-1 bg-neutral-100 rounded text-[10px]">→</kbd>
+                                <span>to navigate</span>
+                              </span>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  )}
-                </div>
-              </div>
+                  </motion.div>
+                ) : (
+                  /* Detail Screen */
+                  <motion.div
+                    key="detail"
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    transition={{ duration: 0.2 }}
+                    className="w-full h-full flex flex-col"
+                  >
+                    {/* Detail Header */}
+                    <div className="flex items-center justify-between p-6 border-b border-neutral-100 shrink-0">
+                      <button
+                        onClick={() => setShowDetail(false)}
+                        className="flex items-center gap-2 text-sm text-neutral-600 hover:text-neutral-900 transition-colors"
+                      >
+                        <ArrowRight className="w-4 h-4 rotate-180" />
+                        <span className="font-mono uppercase tracking-wider">Back</span>
+                      </button>
+                      <h3 className="text-lg font-bold" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+                        {activeProject.title}
+                      </h3>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveProject(null);
+                          setShowDetail(false);
+                        }}
+                        className="w-10 h-10 bg-neutral-100 hover:bg-neutral-200 rounded-full flex items-center justify-center transition-colors cursor-pointer"
+                      >
+                        <X className="w-5 h-5 text-neutral-600" />
+                      </button>
+                    </div>
+
+                    {/* Detail Content */}
+                    <div className="flex-1 overflow-y-auto p-6 md:p-8">
+                      <div className="max-w-3xl mx-auto space-y-8">
+                        {/* Project Info Header */}
+                        <div className="flex flex-wrap items-center gap-3">
+                          <span className="px-3 py-1 text-xs font-mono bg-neutral-100 text-neutral-600 rounded-full">
+                            {activeProject.category}
+                          </span>
+                          <span className="text-sm text-neutral-500 font-mono">{activeProject.yearMonth}</span>
+                          {activeProject.project_type.map((type, i) => (
+                            <span key={i} className="px-2 py-0.5 text-[10px] bg-black text-white rounded">
+                              {type}
+                            </span>
+                          ))}
+                        </div>
+
+                        {/* Description */}
+                        <div>
+                          <h4 className="text-xs font-mono uppercase tracking-wider text-neutral-400 mb-3">Description</h4>
+                          <p className="text-neutral-700 leading-relaxed">
+                            {activeProject.detailed_description || activeProject.description || "No description available."}
+                          </p>
+                        </div>
+
+                        {/* Technologies */}
+                        {activeProject.technologies.length > 0 && (
+                          <div>
+                            <h4 className="text-xs font-mono uppercase tracking-wider text-neutral-400 mb-3">Technologies</h4>
+                            <div className="flex flex-wrap gap-2">
+                              {activeProject.technologies.map((tech, i) => (
+                                <span 
+                                  key={i} 
+                                  className="px-3 py-1.5 text-sm bg-neutral-100 text-neutral-700 rounded-lg"
+                                >
+                                  {tech.name}
+                                  {tech.category && (
+                                    <span className="ml-1 text-xs text-neutral-400">({tech.category})</span>
+                                  )}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Features */}
+                        {activeProject.features.length > 0 && (
+                          <div>
+                            <h4 className="text-xs font-mono uppercase tracking-wider text-neutral-400 mb-3">Features</h4>
+                            <ul className="space-y-3">
+                              {activeProject.features.map((feature, i) => (
+                                <li key={i} className="flex gap-3">
+                                  <span className="w-6 h-6 rounded-full bg-neutral-100 text-neutral-500 text-xs flex items-center justify-center shrink-0 mt-0.5">
+                                    {i + 1}
+                                  </span>
+                                  <div>
+                                    <span className="font-medium text-neutral-800">{feature.title}</span>
+                                    {feature.description && (
+                                      <p className="text-sm text-neutral-500 mt-1">{feature.description}</p>
+                                    )}
+                                  </div>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {/* Topics */}
+                        {activeProject.topics.length > 0 && (
+                          <div>
+                            <h4 className="text-xs font-mono uppercase tracking-wider text-neutral-400 mb-3">Topics</h4>
+                            <div className="flex flex-wrap gap-2">
+                              {activeProject.topics.map((topic, i) => (
+                                <span key={i} className="px-3 py-1.5 text-sm bg-neutral-50 text-neutral-600 rounded-lg border border-neutral-200">
+                                  {topic}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Links */}
+                        <div className="flex flex-wrap gap-3 pt-4 border-t border-neutral-100">
+                          <a 
+                            href={activeProject.html_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-6 py-3 bg-black text-white text-sm font-mono uppercase tracking-widest hover:bg-neutral-800 transition-colors flex items-center gap-2 rounded-lg"
+                          >
+                            <Github className="w-4 h-4" />
+                            GitHub
+                          </a>
+                          
+                          {activeProject.demo_url && (
+                            <a
+                              href={activeProject.demo_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-6 py-3 bg-neutral-100 text-neutral-800 text-sm font-mono uppercase tracking-widest hover:bg-neutral-200 transition-colors flex items-center gap-2 rounded-lg"
+                            >
+                              <ExternalLink className="w-4 h-4" />
+                              Live Demo
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
           </motion.div>
         )}

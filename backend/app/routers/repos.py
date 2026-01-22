@@ -20,8 +20,17 @@ async def get_repositories():
     Returns repositories sorted by priority (highest first),
     then by last updated date.
     """
+    # #region agent log
+    import json; open(r'c:\Dev\new_folio\.cursor\debug.log','a').write(json.dumps({"location":"repos.py:get_repositories","message":"Endpoint called","timestamp":__import__('time').time()*1000,"sessionId":"debug-session","hypothesisId":"H3,H5"})+'\n')
+    # #endregion
     try:
+        # #region agent log
+        open(r'c:\Dev\new_folio\.cursor\debug.log','a').write(json.dumps({"location":"repos.py:get_repositories","message":"Before get_all","timestamp":__import__('time').time()*1000,"sessionId":"debug-session","hypothesisId":"H4"})+'\n')
+        # #endregion
         repos = await repository_service.get_all()
+        # #region agent log
+        open(r'c:\Dev\new_folio\.cursor\debug.log','a').write(json.dumps({"location":"repos.py:get_repositories","message":"After get_all","data":{"repos_count":len(repos)},"timestamp":__import__('time').time()*1000,"sessionId":"debug-session","hypothesisId":"H4"})+'\n')
+        # #endregion
         last_updated = await repository_service.get_last_updated()
         
         return RepositoryListResponse(
@@ -30,6 +39,9 @@ async def get_repositories():
             last_updated=last_updated,
         )
     except Exception as e:
+        # #region agent log
+        open(r'c:\Dev\new_folio\.cursor\debug.log','a').write(json.dumps({"location":"repos.py:get_repositories","message":"Exception","data":{"error":str(e)},"timestamp":__import__('time').time()*1000,"sessionId":"debug-session","hypothesisId":"H4"})+'\n')
+        # #endregion
         logger.error(f"Failed to get repositories: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch repositories")
 

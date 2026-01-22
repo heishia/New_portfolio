@@ -16,21 +16,21 @@ async def init_db() -> None:
     global _pool
     settings = get_settings()
     
-    if settings.app_env == "dev" and not settings.database_url.startswith("postgresql://"):
-        logger.warning("Skipping database connection in dev mode without valid DATABASE_URL")
-        return
-    
     try:
+        # Remove query params (like sslmode) - asyncpg handles SSL separately
+        dsn = settings.database_url.split('?')[0]
+        ssl_setting = False if settings.app_env == "dev" else "prefer"
+        
         _pool = await asyncpg.create_pool(
-            settings.database_url,
+            dsn,
             min_size=2,
             max_size=10,
+            ssl=ssl_setting,
         )
         logger.info("Database connection pool initialized")
     except Exception as e:
         logger.error(f"Failed to connect to database: {e}")
-        if settings.app_env != "dev":
-            raise
+        raise
 
 
 async def close_db() -> None:

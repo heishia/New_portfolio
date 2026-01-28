@@ -533,6 +533,35 @@ export function Works() {
     fetchRepositories();
   }, [fetchRepositories]);
 
+  // Body scroll lock when modal is open
+  useEffect(() => {
+    if (activeProject) {
+      // 모달 열릴 때 body 스크롤 방지
+      const scrollY = window.scrollY;
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = '100%';
+    } else {
+      // 모달 닫힐 때 원복
+      const scrollY = document.body.style.top;
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY || '0', 10) * -1);
+      }
+    }
+
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+    };
+  }, [activeProject]);
+
   // Keyboard navigation for modal
   useEffect(() => {
     if (!activeProject) return;
@@ -905,11 +934,14 @@ export function Works() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-12 bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-12 bg-black/60 backdrop-blur-sm overflow-hidden"
             onClick={() => { setActiveProject(null); setShowDetail(false); }}
             onMouseDown={(e) => e.stopPropagation()}
             onMouseMove={(e) => e.stopPropagation()}
             onMouseUp={(e) => e.stopPropagation()}
+            onWheel={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
           >
             <motion.div
               layoutId={`card-${activeProject.uniqueId}`}
@@ -1093,13 +1125,15 @@ function Spine3D({ project, angle, radius, onSelect }: { project: ProjectDisplay
       onClick={onSelect}
       className="absolute top-0 left-0 w-[60px] h-full backface-hidden group cursor-pointer pointer-events-auto"
       style={{
-        transform: `rotateY(${angle}deg) translateZ(${radius}px)`
+        transform: `rotateY(${angle}deg) translateZ(${radius}px)`,
+        transformStyle: 'preserve-3d',
       }}
     >
       <motion.div
         className="w-full h-full shadow-lg transition-transform duration-300 group-hover:-translate-y-4 hover:brightness-110 border-l border-white/10"
         style={{
           backgroundColor: project.spineColor,
+          transformStyle: 'preserve-3d',
         }}
       >
         <div className="w-full h-full flex flex-col items-center justify-between py-6">
@@ -1168,6 +1202,23 @@ function ProjectDetailPage({
   onClose: () => void;
 }) {
   const [selectedScreenshot, setSelectedScreenshot] = useState<number | null>(null);
+
+  // Body scroll lock for screenshot lightbox (추가 레이어)
+  useEffect(() => {
+    if (selectedScreenshot !== null) {
+      // 이미 body가 fixed 상태이므로 추가 처리 불필요
+      // 하지만 detail page 내부 스크롤도 막아야 함
+      const detailContainer = document.querySelector('[data-detail-scroll]');
+      if (detailContainer) {
+        (detailContainer as HTMLElement).style.overflow = 'hidden';
+      }
+    } else {
+      const detailContainer = document.querySelector('[data-detail-scroll]');
+      if (detailContainer) {
+        (detailContainer as HTMLElement).style.overflow = '';
+      }
+    }
+  }, [selectedScreenshot]);
 
   // Group technologies by category
   const techByCategory = React.useMemo(() => {
@@ -1244,7 +1295,7 @@ function ProjectDetailPage({
       </div>
 
       {/* Content - Scrollable */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto" data-detail-scroll>
         <div className="max-w-4xl mx-auto px-6 py-8 space-y-8">
           
           {/* ========== Hero Section ========== */}
@@ -1411,8 +1462,11 @@ function ProjectDetailPage({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 z-[200] bg-black/90 flex items-center justify-center p-4"
+                className="fixed inset-0 z-[200] bg-black/90 flex items-center justify-center p-4 overflow-hidden"
                 onClick={() => setSelectedScreenshot(null)}
+                onWheel={(e) => e.stopPropagation()}
+                onTouchStart={(e) => e.stopPropagation()}
+                onTouchMove={(e) => e.stopPropagation()}
               >
                 <button
                   className="absolute top-4 right-4 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-colors"

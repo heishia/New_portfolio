@@ -1,3 +1,4 @@
+import json
 from fastapi import APIRouter, HTTPException, Depends, Request
 from datetime import datetime, timedelta
 from typing import Optional
@@ -117,6 +118,8 @@ async def collect_analytics(request: Request):
             
             elif event_type == "event":
                 # 커스텀 이벤트 저장
+                event_data = data.get("data")
+                event_data_json = json.dumps(event_data) if event_data else None
                 await conn.execute(
                     """
                     INSERT INTO analytics_events (
@@ -126,7 +129,7 @@ async def collect_analytics(request: Request):
                     data.get("sessionId"),
                     data.get("visitorId"),
                     data.get("name"),
-                    data.get("data"),
+                    event_data_json,
                     data.get("url")
                 )
                 
@@ -154,6 +157,11 @@ async def collect_analytics(request: Request):
                 )
                 
                 # 이탈 이벤트 저장
+                leave_event_data = json.dumps({
+                    "duration": data.get("duration"),
+                    "activeTime": data.get("activeTime"),
+                    "scrollDepth": data.get("scrollDepth")
+                })
                 await conn.execute(
                     """
                     INSERT INTO analytics_events (
@@ -162,11 +170,7 @@ async def collect_analytics(request: Request):
                     """,
                     data.get("sessionId"),
                     data.get("visitorId"),
-                    {
-                        "duration": data.get("duration"),
-                        "activeTime": data.get("activeTime"),
-                        "scrollDepth": data.get("scrollDepth")
-                    },
+                    leave_event_data,
                     data.get("url")
                 )
         

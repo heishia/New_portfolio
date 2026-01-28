@@ -8,12 +8,12 @@ const services = [
     mediaType: 'image'
   },
   {
-    title: '웹개발',
-    description: '반응형 웹사이트부터 복잡한 웹 애플리케이션까지 최신 기술로 구현합니다.',
+    title: '반응형 홈페이지',
+    description: '모든 디바이스에서 완벽하게 작동하는 반응형 웹사이트를 제작합니다.',
     mediaType: 'image'
   },
   {
-    title: '자사몰 (이커머스)',
+    title: '쇼핑몰 (이커머스)',
     description: '온라인 쇼핑몰 구축부터 결제 시스템 연동까지 완벽한 이커머스 솔루션을 제공합니다.',
     mediaType: 'image'
   },
@@ -24,8 +24,8 @@ const services = [
     videoSrc: '/videos/자동화프로그램.mp4'
   },
   {
-    title: '데스크톱 소프트웨어',
-    description: 'Windows, Mac, Linux를 지원하는 크로스플랫폼 데스크톱 애플리케이션을 제작합니다.',
+    title: '플랫폼 개발',
+    description: 'SaaS, 관리 시스템, 대시보드 등 비즈니스에 맞는 플랫폼을 구축합니다.',
     mediaType: 'image'
   },
   {

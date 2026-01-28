@@ -1,18 +1,34 @@
 import uuid
+import os
+from pathlib import Path
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, FileResponse
 from typing import List
-import boto3
-from botocore.config import Config
 
 from app.config import get_settings
 from app.routers.auth import get_current_user
 
 router = APIRouter(prefix="/upload", tags=["upload"])
 
+# 로컬 저장 경로 (개발용)
+LOCAL_UPLOAD_DIR = Path(__file__).parent.parent.parent.parent / "public" / "uploads"
+
+
+def is_bucket_configured() -> bool:
+    """Bucket 설정이 되어있는지 확인"""
+    settings = get_settings()
+    return bool(
+        settings.bucket_access_key_id and 
+        settings.bucket_secret_access_key and 
+        settings.bucket_name
+    )
+
 
 def get_s3_client():
     """Railway Bucket S3 클라이언트 생성"""
+    import boto3
+    from botocore.config import Config
+    
     settings = get_settings()
     
     return boto3.client(
@@ -47,16 +63,10 @@ async def upload_screenshots(
     project_id: int = Form(...),
     user: dict = Depends(get_current_user)
 ):
-    """프로젝트 스크린샷 업로드 (Railway Bucket)"""
+    """프로젝트 스크린샷 업로드 (Railway Bucket 또는 로컬)"""
     settings = get_settings()
+    use_bucket = is_bucket_configured()
     
-    if not settings.bucket_endpoint:
-        raise HTTPException(
-            status_code=500, 
-            detail="Storage bucket not configured"
-        )
-    
-    client = get_s3_client()
     uploaded_files = []
     
     for file in files:
@@ -76,21 +86,37 @@ async def upload_screenshots(
             # 파일 읽기
             content = await file.read()
             
-            # Railway Bucket에 업로드
-            client.put_object(
-                Bucket=settings.bucket_name,
-                Key=key,
-                Body=content,
-                ContentType=content_type
-            )
-            
-            # Presigned URL 생성 (90일 - Railway 최대)
-            presigned_url = generate_presigned_url(key, expires_in=86400 * 90)
-            
-            uploaded_files.append({
-                "key": key,
-                "url": presigned_url
-            })
+            if use_bucket:
+                # Railway Bucket에 업로드
+                client = get_s3_client()
+                client.put_object(
+                    Bucket=settings.bucket_name,
+                    Key=key,
+                    Body=content,
+                    ContentType=content_type
+                )
+                
+                # Presigned URL 생성 (90일 - Railway 최대)
+                presigned_url = generate_presigned_url(key, expires_in=86400 * 90)
+                
+                uploaded_files.append({
+                    "key": key,
+                    "url": presigned_url
+                })
+            else:
+                # 로컬 저장 (개발용)
+                local_path = LOCAL_UPLOAD_DIR / key
+                local_path.parent.mkdir(parents=True, exist_ok=True)
+                
+                with open(local_path, "wb") as f:
+                    f.write(content)
+                
+                print(f"[Upload] Saved locally: {local_path}")
+                
+                uploaded_files.append({
+                    "key": key,
+                    "url": f"/uploads/{key}"  # 프론트엔드에서 접근 가능한 경로
+                })
             
         except Exception as e:
             print(f"[Upload] Error uploading {file.filename}: {e}")
@@ -107,18 +133,22 @@ async def upload_screenshots(
 
 @router.get("/file/{key:path}")
 async def get_file(key: str):
-    """파일 조회 - Presigned URL로 리다이렉트"""
-    settings = get_settings()
+    """파일 조회 - Bucket이면 Presigned URL, 로컬이면 FileResponse"""
+    use_bucket = is_bucket_configured()
     
-    if not settings.bucket_endpoint:
-        raise HTTPException(status_code=500, detail="Storage not configured")
-    
-    try:
-        presigned_url = generate_presigned_url(key, expires_in=3600)  # 1시간
-        return RedirectResponse(url=presigned_url, status_code=302)
-    except Exception as e:
-        print(f"[Upload] Error generating URL for {key}: {e}")
-        raise HTTPException(status_code=404, detail="File not found")
+    if use_bucket:
+        try:
+            presigned_url = generate_presigned_url(key, expires_in=3600)  # 1시간
+            return RedirectResponse(url=presigned_url, status_code=302)
+        except Exception as e:
+            print(f"[Upload] Error generating URL for {key}: {e}")
+            raise HTTPException(status_code=404, detail="File not found")
+    else:
+        # 로컬 파일 반환
+        local_path = LOCAL_UPLOAD_DIR / key
+        if not local_path.exists():
+            raise HTTPException(status_code=404, detail="File not found")
+        return FileResponse(local_path)
 
 
 @router.delete("/screenshots")
@@ -127,21 +157,27 @@ async def delete_screenshot(
     user: dict = Depends(get_current_user)
 ):
     """스크린샷 삭제"""
-    settings = get_settings()
+    use_bucket = is_bucket_configured()
     
-    if not settings.bucket_endpoint:
-        raise HTTPException(
-            status_code=500, 
-            detail="Storage bucket not configured"
-        )
-    
-    try:
-        client = get_s3_client()
-        client.delete_object(
-            Bucket=settings.bucket_name,
-            Key=key
-        )
-        return {"success": True}
-    except Exception as e:
-        print(f"[Upload] Error deleting {key}: {e}")
-        raise HTTPException(status_code=500, detail="Failed to delete file")
+    if use_bucket:
+        try:
+            client = get_s3_client()
+            settings = get_settings()
+            client.delete_object(
+                Bucket=settings.bucket_name,
+                Key=key
+            )
+            return {"success": True}
+        except Exception as e:
+            print(f"[Upload] Error deleting {key}: {e}")
+            raise HTTPException(status_code=500, detail="Failed to delete file")
+    else:
+        # 로컬 파일 삭제
+        local_path = LOCAL_UPLOAD_DIR / key
+        try:
+            if local_path.exists():
+                local_path.unlink()
+            return {"success": True}
+        except Exception as e:
+            print(f"[Upload] Error deleting local file {key}: {e}")
+            raise HTTPException(status_code=500, detail="Failed to delete file")

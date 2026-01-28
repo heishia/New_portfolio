@@ -41,6 +41,10 @@ function getImageUrl(imageKey: string | null): string | null {
   if (imageKey.startsWith('http')) {
     return imageKey;
   }
+  // 로컬 업로드 경로 (/uploads/...)면 백엔드 URL과 결합
+  if (imageKey.startsWith('/uploads/')) {
+    return `${API_BASE}${imageKey}`;
+  }
   // key만 저장된 경우 API를 통해 조회
   return `${API_BASE}/api/upload/file/${imageKey}`;
 }

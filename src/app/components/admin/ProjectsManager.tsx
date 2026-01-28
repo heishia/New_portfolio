@@ -19,9 +19,27 @@ const fetcher = async (url: string) => {
 };
 
 interface Screenshot {
-  url: string;
+  url: string;  // presigned URL 또는 key
+  key?: string; // Railway Bucket key
   caption?: string;
   order: number;
+}
+
+// 스크린샷 URL 변환 (key -> API URL)
+function getImageUrl(screenshot: Screenshot): string {
+  // key가 있으면 API를 통해 조회
+  if (screenshot.key) {
+    return `${API_BASE}/api/upload/file/${screenshot.key}`;
+  }
+  // presigned URL이면 그대로 사용
+  if (screenshot.url?.startsWith('http')) {
+    return screenshot.url;
+  }
+  // key만 저장된 경우 (url 필드에 key가 있는 경우)
+  if (screenshot.url && !screenshot.url.startsWith('http')) {
+    return `${API_BASE}/api/upload/file/${screenshot.url}`;
+  }
+  return screenshot.url;
 }
 
 interface Repository {
@@ -80,10 +98,15 @@ export default function ProjectsManager() {
       const project = data?.find(p => p.id === projectId);
       if (project) {
         const currentScreenshots = getScreenshots(project);
+        // keys 배열이 있으면 key 기반으로 저장, 없으면 url 사용
+        const keys = result.keys || [];
+        const urls = result.urls || [];
+        
         const newScreenshots = [
           ...currentScreenshots,
-          ...result.urls.map((url: string, idx: number) => ({
-            url,
+          ...keys.map((key: string, idx: number) => ({
+            url: urls[idx] || key, // presigned URL 또는 key
+            key: key,
             caption: '',
             order: currentScreenshots.length + idx
           }))
@@ -274,7 +297,7 @@ export default function ProjectsManager() {
                       className="relative group bg-white rounded-lg border overflow-hidden"
                     >
                       <img
-                        src={screenshot.url}
+                        src={getImageUrl(screenshot)}
                         alt={screenshot.caption || `Screenshot ${index + 1}`}
                         className="w-full aspect-video object-cover"
                       />

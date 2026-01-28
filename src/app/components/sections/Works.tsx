@@ -329,45 +329,61 @@ export function Works() {
   // Computed projects
   const projects = transformReposToProjects(repositories);
   
-  // Friendly tag names mapping (technical term -> user-friendly name)
+  // Friendly tag names mapping (technical term -> consumer-friendly name)
   const friendlyTagNames: Record<string, string> = {
-    // Project Types (Korean friendly)
+    // === 소비자 친화적 프로젝트 유형 ===
     'web': '웹사이트',
     'website': '웹사이트',
     'webapp': '웹앱',
-    'mobile': '모바일앱',
-    'mobile-app': '모바일앱',
-    'desktop': '데스크탑',
-    'cli': 'CLI 도구',
-    'automation': '자동화',
-    'api': 'API/백엔드',
-    'backend': 'API/백엔드',
+    'mobile': '모바일 어플',
+    'mobile-app': '모바일 어플',
+    'app': '모바일 어플',
+    'desktop': '데스크탑 앱',
+    'desktop-app': '데스크탑 앱',
+    'saas': 'SaaS',
+    'b2b': '회사 소프트웨어',
+    'enterprise': '회사 소프트웨어',
+    'ecommerce': '쇼핑몰/자사몰',
+    'shop': '쇼핑몰/자사몰',
+    'shopping': '쇼핑몰/자사몰',
+    'automation': '업무 자동화',
+    'cli': '개발 도구',
+    'tool': '개발 도구',
+    'api': '백엔드/API',
+    'backend': '백엔드/API',
     'fullstack': '풀스택',
-    'library': '라이브러리',
-    'tool': '개발도구',
-    // Popular Languages/Frameworks
-    'python': 'Python',
-    'javascript': 'JavaScript',
-    'typescript': 'TypeScript',
+    'landing': '랜딩페이지',
+    'dashboard': '대시보드',
+    'admin': '관리자 페이지',
+    'portfolio': '포트폴리오',
+    'blog': '블로그',
+    // === 유명 모바일 프레임워크 (일반인도 아는 것들) ===
+    'react-native': 'React Native',
+    'reactnative': 'React Native',
+    'flutter': 'Flutter',
+    'swift': 'iOS(Swift)',
+    'kotlin': 'Android(Kotlin)',
+    // === 유명 웹 프레임워크 ===
     'react': 'React',
     'nextjs': 'Next.js',
     'next.js': 'Next.js',
     'vue': 'Vue',
+    // === 주요 언어 (기술 관심자용) ===
+    'python': 'Python',
+    'typescript': 'TypeScript',
     'go': 'Go',
     'golang': 'Go',
-    'rust': 'Rust',
-    'java': 'Java',
-    'kotlin': 'Kotlin',
-    'swift': 'Swift',
-    'flutter': 'Flutter',
-    'node': 'Node.js',
-    'nodejs': 'Node.js',
   };
 
-  // Priority tags for better UX (shown first if available)
+  // Priority tags for better UX - 소비자/클라이언트가 이해하기 쉬운 순서
   const priorityTags = [
-    '웹사이트', '모바일앱', '데스크탑', '자동화', 'API/백엔드',
-    'Python', 'TypeScript', 'React', 'Next.js', 'Go'
+    // 1순위: 결과물 유형 (비개발자도 이해)
+    '웹사이트', '모바일 어플', '데스크탑 앱', '쇼핑몰/자사몰', 
+    'SaaS', '회사 소프트웨어', '업무 자동화', '대시보드',
+    // 2순위: 유명 모바일 프레임워크
+    'Flutter', 'React Native',
+    // 3순위: 주요 기술 (기술 관심자용)
+    'React', 'Next.js', 'Python', 'TypeScript'
   ];
 
   // Extract unique tags for quick filters (tech stack + project types)
@@ -765,7 +781,7 @@ export function Works() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="프로젝트 검색 (기술, 유형, 키워드)"
+                placeholder="어떤 프로젝트를 찾으시나요?"
                 className="w-full pl-14 pr-24 py-5 md:py-6 2xl:py-5 bg-transparent text-[15px] 2xl:text-xl placeholder:text-neutral-400 focus:outline-none"
                 style={{ fontFamily: "'Inter', sans-serif" }}
                 onMouseDown={(e) => e.stopPropagation()}
@@ -837,8 +853,8 @@ export function Works() {
                 </button>
               ))
             ) : (
-              // Fallback tags when no data loaded - user-friendly names
-              ['웹사이트', '모바일앱', '자동화', 'Python', 'React', 'TypeScript'].map((tag) => (
+              // Fallback tags when no data loaded - 소비자 친화적 키워드
+              ['웹사이트', '모바일 어플', '데스크탑 앱', '쇼핑몰/자사몰', 'SaaS', '업무 자동화'].map((tag) => (
                 <button
                   key={tag}
                   onClick={() => setSearchQuery(searchQuery === tag ? '' : tag)}
@@ -1165,7 +1181,6 @@ function ProjectDetailPage({
   }, [project.technologies]);
 
   const hasScreenshots = project.screenshots && project.screenshots.length > 0;
-  const hasVideos = project.screenshots?.some(s => s.type === 'video' || s.file?.endsWith('.mp4'));
 
   // Format date range
   const getDateRange = () => {
@@ -1195,6 +1210,13 @@ function ProjectDetailPage({
 
   const statusBadge = getStatusBadge();
 
+  // Check if there's detailed architecture info
+  const hasArchitectureInfo = project.architecture || 
+    project.system_components.length > 0 || 
+    project.core_principles.length > 0 || 
+    project.auth_flow.length > 0 || 
+    project.data_models.length > 0;
+
   return (
     <motion.div
       key="detail"
@@ -1223,7 +1245,7 @@ function ProjectDetailPage({
 
       {/* Content - Scrollable */}
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-4xl mx-auto px-6 py-8 space-y-6">
+        <div className="max-w-4xl mx-auto px-6 py-8 space-y-8">
           
           {/* ========== Hero Section ========== */}
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-neutral-100">
@@ -1312,69 +1334,54 @@ function ProjectDetailPage({
             </div>
           </div>
 
-          {/* ========== Quick Stats Grid ========== */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-neutral-100 text-center">
-              <Star className="w-5 h-5 mx-auto mb-1 text-yellow-500" />
-              <span className="text-xl font-bold text-neutral-900 block">{project.stargazers_count || 0}</span>
-              <p className="text-xs text-neutral-500">Stars</p>
-            </div>
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-neutral-100 text-center">
-              <Code2 className="w-5 h-5 mx-auto mb-1 text-blue-500" />
-              <span className="text-xl font-bold text-neutral-900 block">{project.technologies.length}</span>
-              <p className="text-xs text-neutral-500">기술 스택</p>
-            </div>
-            {project.lines_of_code && (
-              <div className="bg-white rounded-xl p-4 shadow-sm border border-neutral-100 text-center">
-                <FileCode className="w-5 h-5 mx-auto mb-1 text-green-500" />
-                <span className="text-xl font-bold text-neutral-900 block">{project.lines_of_code.toLocaleString()}</span>
-                <p className="text-xs text-neutral-500">코드 라인</p>
-              </div>
-            )}
-            {project.commit_count && (
-              <div className="bg-white rounded-xl p-4 shadow-sm border border-neutral-100 text-center">
-                <GitCommit className="w-5 h-5 mx-auto mb-1 text-purple-500" />
-                <span className="text-xl font-bold text-neutral-900 block">{project.commit_count}</span>
-                <p className="text-xs text-neutral-500">커밋</p>
-              </div>
-            )}
-            {project.contributor_count > 1 && (
-              <div className="bg-white rounded-xl p-4 shadow-sm border border-neutral-100 text-center">
-                <Users className="w-5 h-5 mx-auto mb-1 text-orange-500" />
-                <span className="text-xl font-bold text-neutral-900 block">{project.contributor_count}</span>
-                <p className="text-xs text-neutral-500">기여자</p>
-              </div>
-            )}
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-neutral-100 text-center">
-              <Layers className="w-5 h-5 mx-auto mb-1 text-pink-500" />
-              <span className="text-xl font-bold text-neutral-900 block">{project.features.length}</span>
-              <p className="text-xs text-neutral-500">기능</p>
-            </div>
-          </div>
-
-          {/* ========== Screenshots Grid ========== */}
-          {hasScreenshots && (
+          {/* ========== 1. 기술 스택 (Tech Stack) ========== */}
+          {project.technologies.length > 0 && (
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-neutral-100">
-              <h2 className="text-lg font-bold text-neutral-900 mb-4 flex items-center gap-2">
-                <ImageIcon className="w-5 h-5 text-neutral-400" />
-                스크린샷 & 미디어
-                <span className="text-xs text-neutral-400 ml-auto">{project.screenshots.length}개</span>
+              <h2 className="text-xl font-bold text-blue-600 mb-6 flex items-center gap-2">
+                기술 스택
               </h2>
               
-              {/* Grid Layout */}
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <div className="space-y-5">
+                {Object.entries(techByCategory).map(([category, techs]) => (
+                  <div key={category}>
+                    <h3 className="text-sm font-semibold text-neutral-700 mb-3">{category}</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {techs.map((tech, i) => (
+                        <span
+                          key={i}
+                          className={`px-3 py-1.5 text-sm rounded-lg border transition-colors hover:shadow-sm ${getCategoryColor(category)}`}
+                        >
+                          {tech.name}
+                          {tech.version && (
+                            <span className="ml-1 opacity-60 text-xs">{tech.version}</span>
+                          )}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ========== 2. 프로젝트 갤러리 (Screenshots) ========== */}
+          {hasScreenshots && (
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-neutral-100">
+              <h2 className="text-xl font-bold text-blue-600 mb-6">프로젝트 갤러리</h2>
+              
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {project.screenshots.map((screenshot, i) => {
                   const isVideo = screenshot.type === 'video' || screenshot.file?.endsWith('.mp4');
                   return (
                     <button
                       key={i}
                       onClick={() => setSelectedScreenshot(i)}
-                      className="group relative aspect-video bg-neutral-100 rounded-xl overflow-hidden border-2 border-transparent hover:border-blue-400 transition-all"
+                      className="group relative aspect-[3/4] bg-neutral-100 rounded-xl overflow-hidden border-2 border-transparent hover:border-blue-400 transition-all shadow-sm hover:shadow-md"
                     >
                       {isVideo ? (
                         <div className="w-full h-full flex items-center justify-center bg-neutral-200">
-                          <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                            <Play className="w-5 h-5 text-neutral-700 ml-0.5" />
+                          <div className="w-14 h-14 rounded-full bg-white/90 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                            <Play className="w-6 h-6 text-neutral-700 ml-0.5" />
                           </div>
                         </div>
                       ) : (
@@ -1386,8 +1393,8 @@ function ProjectDetailPage({
                       )}
                       {/* Caption Overlay */}
                       {screenshot.caption && (
-                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <p className="text-white text-xs truncate">{screenshot.caption}</p>
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <p className="text-white text-xs line-clamp-2">{screenshot.caption}</p>
                         </div>
                       )}
                     </button>
@@ -1404,7 +1411,7 @@ function ProjectDetailPage({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4"
+                className="fixed inset-0 z-[200] bg-black/90 flex items-center justify-center p-4"
                 onClick={() => setSelectedScreenshot(null)}
               >
                 <button
@@ -1414,7 +1421,6 @@ function ProjectDetailPage({
                   <X className="w-5 h-5 text-white" />
                 </button>
                 
-                {/* Navigation */}
                 {project.screenshots.length > 1 && (
                   <>
                     <button
@@ -1464,82 +1470,202 @@ function ProjectDetailPage({
             )}
           </AnimatePresence>
 
-          {/* ========== Tech Stack Section ========== */}
-          {project.technologies.length > 0 && (
+          {/* ========== 3. 프로젝트 상세 설명 (Architecture) ========== */}
+          {hasArchitectureInfo && (
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-neutral-100">
-              <h2 className="text-lg font-bold text-neutral-900 mb-4 flex items-center gap-2">
-                <Code2 className="w-5 h-5 text-neutral-400" />
-                기술 스택
-              </h2>
+              <h2 className="text-xl font-bold text-blue-600 mb-6">프로젝트 상세 설명</h2>
               
-              <div className="space-y-4">
-                {Object.entries(techByCategory).map(([category, techs]) => (
-                  <div key={category} className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm text-neutral-500">
-                      {getCategoryIcon(category)}
-                      <span className="font-medium">{category}</span>
-                      <span className="text-xs text-neutral-400">({techs.length})</span>
-                    </div>
-                    <div className="flex flex-wrap gap-2 pl-6">
-                      {techs.map((tech, i) => (
-                        <span
-                          key={i}
-                          className={`px-3 py-1.5 text-sm rounded-lg border ${getCategoryColor(category)}`}
-                        >
-                          {tech.name}
-                          {tech.version && (
-                            <span className="ml-1 opacity-60 text-xs">v{tech.version}</span>
-                          )}
-                        </span>
-                      ))}
-                    </div>
+              <div className="space-y-6">
+                {/* 아키텍처 */}
+                {project.architecture && (
+                  <div>
+                    <h3 className="text-base font-bold text-neutral-800 mb-3">아키텍처</h3>
+                    <p className="text-neutral-600 text-sm leading-relaxed whitespace-pre-wrap">
+                      {project.architecture}
+                    </p>
                   </div>
-                ))}
+                )}
+
+                {/* 시스템 구성 */}
+                {project.system_components.length > 0 && (
+                  <div>
+                    <h3 className="text-base font-bold text-neutral-800 mb-3">시스템 구성</h3>
+                    <ul className="space-y-2">
+                      {project.system_components.map((comp, i) => (
+                        <li key={i} className="text-sm text-neutral-600">
+                          <span className="text-neutral-400 mr-2">-</span>
+                          <span className="font-semibold text-neutral-800">{comp.name}:</span>{' '}
+                          {comp.description}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* 핵심 원칙 */}
+                {project.core_principles.length > 0 && (
+                  <div>
+                    <h3 className="text-base font-bold text-neutral-800 mb-3">핵심 원칙</h3>
+                    <ul className="space-y-2">
+                      {project.core_principles.map((principle, i) => (
+                        <li key={i} className="text-sm text-neutral-600">
+                          <span className="text-neutral-400 mr-2">-</span>
+                          <span className="font-semibold text-neutral-800">{principle.title}:</span>{' '}
+                          {principle.description}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* 인증 플로우 */}
+                {project.auth_flow.length > 0 && (
+                  <div>
+                    <h3 className="text-base font-bold text-neutral-800 mb-3">인증 플로우</h3>
+                    <ol className="space-y-1.5">
+                      {project.auth_flow.map((step, i) => (
+                        <li key={i} className="text-sm text-neutral-600 flex items-start gap-2">
+                          <span className="font-semibold text-blue-600 shrink-0">{i + 1}.</span>
+                          <span>{step}</span>
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
+
+                {/* 데이터 모델 */}
+                {project.data_models.length > 0 && (
+                  <div>
+                    <h3 className="text-base font-bold text-neutral-800 mb-3">데이터 모델</h3>
+                    <ul className="space-y-2">
+                      {project.data_models.map((model, i) => (
+                        <li key={i} className="text-sm text-neutral-600">
+                          <span className="text-neutral-400 mr-2">-</span>
+                          <span className="font-semibold text-neutral-800">{model.name}:</span>{' '}
+                          {model.description}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             </div>
           )}
 
-          {/* ========== Features Section ========== */}
+          {/* ========== 4. 주요 기능 (Features) ========== */}
           {project.features.length > 0 && (
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-neutral-100">
-              <h2 className="text-lg font-bold text-neutral-900 mb-4 flex items-center gap-2">
-                <Layers className="w-5 h-5 text-neutral-400" />
-                주요 기능
-              </h2>
+              <h2 className="text-xl font-bold text-blue-600 mb-6">주요 기능</h2>
               
-              <div className="grid gap-3">
+              <div className="space-y-4">
                 {project.features.map((feature, i) => (
                   <div 
                     key={i}
-                    className="flex items-start gap-3 p-3 bg-neutral-50 rounded-xl border border-neutral-100"
+                    className="relative pl-4 border-l-4 border-blue-500 bg-neutral-50 rounded-r-xl p-4"
                   >
-                    <span className="w-7 h-7 rounded-lg bg-blue-100 text-blue-600 text-sm flex items-center justify-center font-bold shrink-0">
-                      {i + 1}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-neutral-900 text-sm">{feature.title}</h3>
-                      {feature.description && (
-                        <p className="text-neutral-500 text-xs mt-1 leading-relaxed">{feature.description}</p>
-                      )}
-                    </div>
+                    <h3 className="font-bold text-neutral-900 text-base mb-1">{feature.title}</h3>
+                    {feature.description && (
+                      <p className="text-blue-600 text-sm font-medium mb-2">{feature.description}</p>
+                    )}
+                    {feature.sub_description && (
+                      <p className="text-neutral-500 text-sm leading-relaxed">{feature.sub_description}</p>
+                    )}
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* ========== Detailed Description ========== */}
-          {project.detailed_description && (
+          {/* ========== 5. 기술적 도전 과제 (Technical Challenges) ========== */}
+          {project.technical_challenges.length > 0 && (
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-neutral-100">
-              <h2 className="text-lg font-bold text-neutral-900 mb-4 flex items-center gap-2">
-                <BookOpen className="w-5 h-5 text-neutral-400" />
-                상세 설명
-              </h2>
-              <div className="prose prose-neutral prose-sm max-w-none">
-                <p className="text-neutral-700 leading-relaxed whitespace-pre-wrap">
-                  {project.detailed_description}
-                </p>
+              <h2 className="text-xl font-bold text-blue-600 mb-2">주요 도전과제</h2>
+              <h3 className="text-lg font-semibold text-neutral-800 mb-6">기술적 도전 과제</h3>
+              
+              <div className="space-y-6">
+                {project.technical_challenges.map((challenge, i) => (
+                  <div key={i} className="space-y-2">
+                    <h4 className="font-bold text-neutral-900">
+                      {i + 1}. {challenge.title}
+                    </h4>
+                    <p className="text-sm text-neutral-600">
+                      <span className="font-semibold text-neutral-800">도전:</span>{' '}
+                      {challenge.challenge}
+                    </p>
+                    <p className="text-sm text-neutral-600">
+                      <span className="font-semibold text-blue-600">해결:</span>{' '}
+                      {challenge.solution}
+                    </p>
+                  </div>
+                ))}
               </div>
+            </div>
+          )}
+
+          {/* ========== 6. 주요 성과 (Key Achievements) ========== */}
+          {project.key_achievements.length > 0 && (
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-neutral-100">
+              <h2 className="text-xl font-bold text-blue-600 mb-2">주요 성과</h2>
+              <h3 className="text-lg font-semibold text-neutral-800 mb-6">주요 성과</h3>
+              
+              <ol className="space-y-3">
+                {project.key_achievements.map((achievement, i) => (
+                  <li key={i} className="text-sm text-neutral-700 flex items-start gap-3">
+                    <span className="font-bold text-blue-600 shrink-0">{i + 1}.</span>
+                    <span>{achievement}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+
+          {/* ========== 7. 코드 스니펫 (Code Snippets) ========== */}
+          {project.code_snippets.length > 0 && (
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-neutral-100">
+              <h2 className="text-xl font-bold text-blue-600 mb-6">코드 스니펫</h2>
+              
+              <div className="space-y-6">
+                {project.code_snippets.map((snippet, i) => (
+                  <div key={i} className="rounded-xl overflow-hidden border border-neutral-200">
+                    {/* Snippet Header */}
+                    <div className="bg-[#1e1e1e] px-4 py-3">
+                      <h4 className="font-bold text-white text-base">{snippet.title}</h4>
+                      <p className="text-neutral-400 text-sm mt-1">{snippet.description}</p>
+                      <p className="text-blue-400 text-xs mt-1 font-mono">{snippet.file_path}</p>
+                    </div>
+                    {/* Code Block */}
+                    <pre className="bg-[#1e1e1e] px-4 py-4 overflow-x-auto">
+                      <code className="text-sm font-mono text-neutral-300 whitespace-pre">
+                        {snippet.code}
+                      </code>
+                    </pre>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ========== Legacy: Challenges & Achievements (if no new data) ========== */}
+          {(project.challenges || project.achievements) && 
+           project.technical_challenges.length === 0 && 
+           project.key_achievements.length === 0 && (
+            <div className="grid md:grid-cols-2 gap-4">
+              {project.challenges && (
+                <div className="bg-gradient-to-br from-orange-50 to-white rounded-2xl p-6 shadow-sm border border-orange-100">
+                  <h2 className="text-lg font-bold text-neutral-900 mb-3 flex items-center gap-2">
+                    <span className="text-xl">🎯</span> 도전 과제
+                  </h2>
+                  <p className="text-neutral-600 text-sm leading-relaxed whitespace-pre-wrap">{project.challenges}</p>
+                </div>
+              )}
+              {project.achievements && (
+                <div className="bg-gradient-to-br from-emerald-50 to-white rounded-2xl p-6 shadow-sm border border-emerald-100">
+                  <h2 className="text-lg font-bold text-neutral-900 mb-3 flex items-center gap-2">
+                    <span className="text-xl">🏆</span> 성과
+                  </h2>
+                  <p className="text-neutral-600 text-sm leading-relaxed whitespace-pre-wrap">{project.achievements}</p>
+                </div>
+              )}
             </div>
           )}
 
@@ -1575,28 +1701,6 @@ function ProjectDetailPage({
                   </div>
                 ))}
               </div>
-            </div>
-          )}
-
-          {/* ========== Challenges & Achievements ========== */}
-          {(project.challenges || project.achievements) && (
-            <div className="grid md:grid-cols-2 gap-4">
-              {project.challenges && (
-                <div className="bg-gradient-to-br from-orange-50 to-white rounded-2xl p-6 shadow-sm border border-orange-100">
-                  <h2 className="text-lg font-bold text-neutral-900 mb-3 flex items-center gap-2">
-                    <span className="text-xl">🎯</span> 도전 과제
-                  </h2>
-                  <p className="text-neutral-600 text-sm leading-relaxed whitespace-pre-wrap">{project.challenges}</p>
-                </div>
-              )}
-              {project.achievements && (
-                <div className="bg-gradient-to-br from-emerald-50 to-white rounded-2xl p-6 shadow-sm border border-emerald-100">
-                  <h2 className="text-lg font-bold text-neutral-900 mb-3 flex items-center gap-2">
-                    <span className="text-xl">🏆</span> 성과
-                  </h2>
-                  <p className="text-neutral-600 text-sm leading-relaxed whitespace-pre-wrap">{project.achievements}</p>
-                </div>
-              )}
             </div>
           )}
 

@@ -752,11 +752,13 @@ export function Works() {
 
         {/* Rotating Cylinder */}
         <motion.div
-          className="relative [transform-style:preserve-3d] h-[55vh] md:h-[60vh] 2xl:h-[45vh] w-[60px] pointer-events-none"
+          className="relative h-[55vh] md:h-[60vh] 2xl:h-[45vh] w-[60px]"
           style={{
             rotateY: smoothRotation,
             scale: isMobile ? 1.5 : 1,
             opacity: loading ? 0.3 : 1,
+            transformStyle: 'preserve-3d',
+            pointerEvents: 'none',
           }}
         >
           {filteredProjects.map((project, i) => {
@@ -1120,20 +1122,32 @@ export function Works() {
 }
 
 function Spine3D({ project, angle, radius, onSelect }: { project: ProjectDisplay, angle: number, radius: number, onSelect: () => void }) {
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onSelect();
+  };
+
   return (
     <div
-      onClick={onSelect}
-      className="absolute top-0 left-0 w-[60px] h-full backface-hidden group cursor-pointer pointer-events-auto"
+      className="absolute top-0 left-0 w-[60px] h-full group"
       style={{
         transform: `rotateY(${angle}deg) translateZ(${radius}px)`,
         transformStyle: 'preserve-3d',
+        backfaceVisibility: 'hidden',
       }}
     >
+      {/* Clickable overlay - positioned to match visual bounds */}
+      <div
+        onClick={handleClick}
+        className="absolute inset-0 cursor-pointer z-10"
+        style={{
+          pointerEvents: 'auto',
+        }}
+      />
       <motion.div
-        className="w-full h-full shadow-lg transition-transform duration-300 group-hover:-translate-y-4 hover:brightness-110 border-l border-white/10"
+        className="w-full h-full shadow-lg transition-transform duration-300 group-hover:-translate-y-4 hover:brightness-110 border-l border-white/10 pointer-events-none"
         style={{
           backgroundColor: project.spineColor,
-          transformStyle: 'preserve-3d',
         }}
       >
         <div className="w-full h-full flex flex-col items-center justify-between py-6">

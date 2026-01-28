@@ -173,3 +173,30 @@ CREATE INDEX idx_evt_name ON analytics_events(event_name);
 CREATE INDEX idx_evt_created ON analytics_events(created_at);
 
 COMMENT ON TABLE analytics_events IS 'Analytics custom events tracking';
+
+
+-- ============================================
+-- Site Settings Table
+-- ============================================
+DROP TABLE IF EXISTS site_settings CASCADE;
+
+CREATE TABLE site_settings (
+  id SERIAL PRIMARY KEY,
+  key VARCHAR(100) UNIQUE NOT NULL,
+  value TEXT,
+  description VARCHAR(255),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_settings_key ON site_settings(key);
+
+COMMENT ON TABLE site_settings IS 'Site-wide settings and configurations';
+
+-- Insert default SNS settings
+INSERT INTO site_settings (key, value, description) VALUES
+  ('sns_threads', 'https://www.threads.com/@kimppopp_', 'Threads 프로필 URL'),
+  ('sns_youtube', 'https://youtube.com/channel/UChcNdaptFGcQC7wmUjKfOHQ/', 'YouTube 채널 URL'),
+  ('sns_github', 'https://github.com/heishia', 'GitHub 프로필 URL'),
+  ('sns_linkedin', '', 'LinkedIn 프로필 URL'),
+  ('contact_email', 'bluejin1130@gmail.com', '연락처 이메일')
+ON CONFLICT (key) DO NOTHING;

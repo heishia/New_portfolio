@@ -52,11 +52,20 @@ interface Repository {
   has_portfolio_meta: boolean;
 }
 
+interface RepositoryListResponse {
+  repositories: Repository[];
+  total: number;
+  last_updated: string | null;
+}
+
 export default function ProjectsManager() {
-  const { data, isLoading, mutate } = useSWR<Repository[]>(
+  const { data, isLoading, mutate } = useSWR<RepositoryListResponse>(
     `${API_BASE}/api/repos`,
     fetcher
   );
+  
+  // repositories 배열 추출
+  const repositories = data?.repositories || [];
 
   const [selectedProject, setSelectedProject] = useState<Repository | null>(null);
   const [uploadingFor, setUploadingFor] = useState<number | null>(null);
@@ -95,7 +104,7 @@ export default function ProjectsManager() {
       const result = await res.json();
       
       // 로컬 스크린샷 업데이트
-      const project = data?.find(p => p.id === projectId);
+      const project = repositories.find(p => p.id === projectId);
       if (project) {
         const currentScreenshots = getScreenshots(project);
         // keys 배열이 있으면 key 기반으로 저장, 없으면 url 사용
@@ -123,7 +132,7 @@ export default function ProjectsManager() {
 
   // 스크린샷 삭제
   const handleDeleteScreenshot = (projectId: number, index: number) => {
-    const project = data?.find(p => p.id === projectId);
+    const project = repositories.find(p => p.id === projectId);
     if (!project) return;
 
     const currentScreenshots = getScreenshots(project);
@@ -133,7 +142,7 @@ export default function ProjectsManager() {
 
   // 캡션 업데이트
   const handleCaptionChange = (projectId: number, index: number, caption: string) => {
-    const project = data?.find(p => p.id === projectId);
+    const project = repositories.find(p => p.id === projectId);
     if (!project) return;
 
     const currentScreenshots = getScreenshots(project);
@@ -201,7 +210,7 @@ export default function ProjectsManager() {
 
       {/* 프로젝트 목록 */}
       <div className="grid gap-4">
-        {data?.map((project) => (
+        {repositories.map((project) => (
           <div 
             key={project.id} 
             className="bg-white rounded-xl border shadow-sm overflow-hidden"
@@ -335,7 +344,7 @@ export default function ProjectsManager() {
           </div>
         ))}
 
-        {!data?.length && (
+        {repositories.length === 0 && (
           <div className="text-center py-12 text-gray-400">
             프로젝트가 없습니다
           </div>

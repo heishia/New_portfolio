@@ -1,7 +1,16 @@
+import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { ArrowDown } from 'lucide-react';
 
 import { FaThreads, FaYoutube, FaGithub, FaLinkedin } from 'react-icons/fa6';
+
+interface SNSLinks {
+  threads: string;
+  youtube: string;
+  github: string;
+  linkedin: string;
+  email: string;
+}
 
 const navItems = [
   { id: '01', label: 'Portfolio', section: 'portfolio' },
@@ -19,6 +28,36 @@ const scrollToSection = (sectionId: string) => {
 };
 
 export function Hero() {
+  const [snsLinks, setSnsLinks] = useState<SNSLinks>({
+    threads: 'https://www.threads.com/@kimppopp_',
+    youtube: 'https://youtube.com/channel/UChcNdaptFGcQC7wmUjKfOHQ/',
+    github: 'https://github.com/heishia',
+    linkedin: '',
+    email: 'bluejin1130@gmail.com'
+  });
+
+  useEffect(() => {
+    const fetchSNSLinks = async () => {
+      try {
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+        const response = await fetch(`${API_URL}/api/settings/sns`);
+        if (response.ok) {
+          const data = await response.json();
+          setSnsLinks({
+            threads: data.threads || '',
+            youtube: data.youtube || '',
+            github: data.github || '',
+            linkedin: data.linkedin || '',
+            email: data.email || ''
+          });
+        }
+      } catch (error) {
+        console.log('Using default SNS links');
+      }
+    };
+    fetchSNSLinks();
+  }, []);
+
   return (
     <section className="relative min-h-screen pt-20 md:pt-32 pb-12 md:pb-20 px-4 md:px-8 flex flex-col justify-between overflow-hidden">
       {/* Main Title */}
@@ -66,18 +105,26 @@ export function Hero() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 1.4, duration: 1 }}
           >
-            <a href="https://threads.net" target="_blank" rel="noopener noreferrer" className="hover:opacity-60 transition-opacity">
-              <FaThreads className="w-6 h-6 md:w-7 md:h-7 2xl:w-8 2xl:h-8 text-black" />
-            </a>
-            <a href="https://youtube.com" target="_blank" rel="noopener noreferrer" className="hover:opacity-60 transition-opacity">
-              <FaYoutube className="w-6 h-6 md:w-7 md:h-7 2xl:w-8 2xl:h-8 text-black" />
-            </a>
-            <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="hover:opacity-60 transition-opacity">
-              <FaGithub className="w-6 h-6 md:w-7 md:h-7 2xl:w-8 2xl:h-8 text-black" />
-            </a>
-            <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="hover:opacity-60 transition-opacity">
-              <FaLinkedin className="w-6 h-6 md:w-7 md:h-7 2xl:w-8 2xl:h-8 text-black" />
-            </a>
+            {snsLinks.threads && (
+              <a href={snsLinks.threads} target="_blank" rel="noopener noreferrer" className="hover:opacity-60 transition-opacity">
+                <FaThreads className="w-6 h-6 md:w-7 md:h-7 2xl:w-8 2xl:h-8 text-black" />
+              </a>
+            )}
+            {snsLinks.youtube && (
+              <a href={snsLinks.youtube} target="_blank" rel="noopener noreferrer" className="hover:opacity-60 transition-opacity">
+                <FaYoutube className="w-6 h-6 md:w-7 md:h-7 2xl:w-8 2xl:h-8 text-black" />
+              </a>
+            )}
+            {snsLinks.github && (
+              <a href={snsLinks.github} target="_blank" rel="noopener noreferrer" className="hover:opacity-60 transition-opacity">
+                <FaGithub className="w-6 h-6 md:w-7 md:h-7 2xl:w-8 2xl:h-8 text-black" />
+              </a>
+            )}
+            {snsLinks.linkedin && (
+              <a href={snsLinks.linkedin} target="_blank" rel="noopener noreferrer" className="hover:opacity-60 transition-opacity">
+                <FaLinkedin className="w-6 h-6 md:w-7 md:h-7 2xl:w-8 2xl:h-8 text-black" />
+              </a>
+            )}
           </motion.div>
         </div>
 

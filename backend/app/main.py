@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.database import init_db, close_db
-from app.routers import repos, auth, analytics, upload
+from app.routers import repos, auth, analytics, upload, settings
 
 
 @asynccontextmanager
@@ -19,10 +19,10 @@ async def lifespan(app: FastAPI):
 
 def create_app() -> FastAPI:
     """Create and configure FastAPI application."""
-    settings = get_settings()
+    app_settings = get_settings()
     
     # Debug: print CORS origins
-    print(f"CORS origins configured: {settings.cors_origins_list}")
+    print(f"CORS origins configured: {app_settings.cors_origins_list}")
     
     app = FastAPI(
         title="Portfolio API",
@@ -34,7 +34,7 @@ def create_app() -> FastAPI:
     # CORS middleware
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.cors_origins_list,
+        allow_origins=app_settings.cors_origins_list,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -45,6 +45,7 @@ def create_app() -> FastAPI:
     app.include_router(auth.router, prefix="/api")
     app.include_router(analytics.router, prefix="/api")
     app.include_router(upload.router, prefix="/api")
+    app.include_router(settings.router, prefix="/api")
     
     # Health check endpoint
     @app.get("/health")

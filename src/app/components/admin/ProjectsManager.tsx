@@ -372,7 +372,7 @@ export default function ProjectsManager() {
                             return (
                               <div
                                 key={idx}
-                                className={`relative aspect-video bg-gray-200 rounded-lg overflow-hidden group ${
+                                className={`relative aspect-video bg-gray-200 rounded-lg overflow-hidden ${
                                   isCover ? 'ring-2 ring-yellow-400 ring-offset-2' : ''
                                 }`}
                               >
@@ -390,26 +390,26 @@ export default function ProjectsManager() {
                                   </div>
                                 )}
 
-                                {/* 호버 오버레이 */}
-                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                {/* 액션 버튼 - 오른쪽 상단 */}
+                                <div className="absolute top-1 right-1 flex gap-1">
                                   {/* 대표이미지 설정 버튼 */}
                                   {!isCover && (
                                     <button
                                       onClick={() => handleSetCoverImage(project.id, screenshot.url)}
-                                      className="p-2 bg-yellow-400 text-yellow-900 rounded-lg hover:bg-yellow-300 transition-colors"
+                                      className="w-6 h-6 bg-yellow-400 text-yellow-900 rounded shadow hover:bg-yellow-300 transition-colors flex items-center justify-center"
                                       title="대표이미지로 설정"
                                     >
-                                      <Star className="w-4 h-4" />
+                                      <Star className="w-3.5 h-3.5" />
                                     </button>
                                   )}
 
                                   {/* 삭제 버튼 */}
                                   <button
                                     onClick={() => handleDeleteScreenshot(project.id, screenshot.url)}
-                                    className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                                    className="w-6 h-6 bg-red-500 text-white rounded shadow hover:bg-red-600 transition-colors flex items-center justify-center"
                                     title="삭제"
                                   >
-                                    <Trash2 className="w-4 h-4" />
+                                    <X className="w-3.5 h-3.5" />
                                   </button>
                                 </div>
                               </div>

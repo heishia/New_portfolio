@@ -68,7 +68,13 @@ class RepositoryService:
                     detailed_description = EXCLUDED.detailed_description,
                     features = EXCLUDED.features,
                     technologies = EXCLUDED.technologies,
-                    screenshots = EXCLUDED.screenshots,
+                    -- screenshots와 cover_image는 기존 값 보존 (관리자가 수동 업로드한 경우)
+                    screenshots = CASE 
+                        WHEN repositories.screenshots IS NOT NULL AND repositories.screenshots != '[]'::jsonb 
+                        THEN repositories.screenshots 
+                        ELSE EXCLUDED.screenshots 
+                    END,
+                    cover_image = COALESCE(repositories.cover_image, EXCLUDED.cover_image),
                     challenges = EXCLUDED.challenges,
                     achievements = EXCLUDED.achievements,
                     priority = EXCLUDED.priority,

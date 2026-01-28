@@ -1,3 +1,4 @@
+import json
 import logging
 from typing import Optional, List
 
@@ -159,14 +160,14 @@ async def update_screenshots(
             raise HTTPException(status_code=404, detail="Repository not found")
         
         # 스크린샷 JSON 변환
-        screenshots_json = [
+        screenshots_json = json.dumps([
             {
                 "url": s.url,
                 "caption": s.caption,
                 "order": s.order
             }
             for s in request.screenshots
-        ]
+        ])
         
         # 업데이트
         await conn.execute(

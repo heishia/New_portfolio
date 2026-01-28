@@ -65,6 +65,83 @@ class GitHubService:
         
         return repos
     
+    async def fetch_commit_count(self, owner: str, repo: str) -> int:
+        """Fetch total commit count for a repository using contributors API."""
+        async with httpx.AsyncClient() as client:
+            # Use contributors API to sum all contributions
+            url = f"{self.BASE_URL}/repos/{owner}/{repo}/contributors"
+            params = {"per_page": 100, "anon": "true"}
+            
+            response = await client.get(url, headers=self.headers, params=params)
+            
+            if response.status_code != 200:
+                # Fallback: try to get from commit count header
+                commits_url = f"{self.BASE_URL}/repos/{owner}/{repo}/commits"
+                commits_response = await client.get(
+                    commits_url, 
+                    headers=self.headers, 
+                    params={"per_page": 1}
+                )
+                
+                if commits_response.status_code == 200:
+                    # Parse Link header to get total count
+                    link_header = commits_response.headers.get("Link", "")
+                    if 'rel="last"' in link_header:
+                        import re
+                        match = re.search(r'page=(\d+)>; rel="last"', link_header)
+                        if match:
+                            return int(match.group(1))
+                return 0
+            
+            contributors = response.json()
+            total_commits = sum(c.get("contributions", 0) for c in contributors)
+            return total_commits
+    
+    async def fetch_code_stats(self, owner: str, repo: str) -> dict:
+        """Fetch code statistics (languages/bytes) for a repository."""
+        async with httpx.AsyncClient() as client:
+            url = f"{self.BASE_URL}/repos/{owner}/{repo}/languages"
+            
+            response = await client.get(url, headers=self.headers)
+            
+            if response.status_code != 200:
+                return {"total_bytes": 0, "estimated_lines": 0, "languages": {}}
+            
+            languages = response.json()
+            total_bytes = sum(languages.values())
+            
+            # Estimate lines of code (rough: ~40 bytes per line on average)
+            estimated_lines = total_bytes // 40
+            
+            return {
+                "total_bytes": total_bytes,
+                "estimated_lines": estimated_lines,
+                "languages": languages,
+            }
+    
+    async def fetch_contributor_count(self, owner: str, repo: str) -> int:
+        """Fetch number of contributors for a repository."""
+        async with httpx.AsyncClient() as client:
+            url = f"{self.BASE_URL}/repos/{owner}/{repo}/contributors"
+            params = {"per_page": 1, "anon": "true"}
+            
+            response = await client.get(url, headers=self.headers, params=params)
+            
+            if response.status_code != 200:
+                return 1
+            
+            # Parse Link header to get total count
+            link_header = response.headers.get("Link", "")
+            if 'rel="last"' in link_header:
+                import re
+                match = re.search(r'page=(\d+)>; rel="last"', link_header)
+                if match:
+                    return int(match.group(1))
+            
+            # If no pagination, count the response
+            contributors = response.json()
+            return len(contributors) if isinstance(contributors, list) else 1
+    
     async def fetch_portfolio_meta(
         self, owner: str, repo: str
     ) -> Optional[PortfolioMeta]:
@@ -156,9 +233,14 @@ class GitHubService:
         return result
     
     def merge_repo_data(
-        self, github_repo: dict, meta: Optional[PortfolioMeta]
+        self, 
+        github_repo: dict, 
+        meta: Optional[PortfolioMeta],
+        code_stats: Optional[dict] = None,
+        commit_count: Optional[int] = None,
+        contributor_count: Optional[int] = None,
     ) -> Repository:
-        """Merge GitHub repo data with custom portfolio metadata."""
+        """Merge GitHub repo data with custom portfolio metadata and stats."""
         owner = github_repo["owner"]["login"]
         repo_name = github_repo["name"]
         
@@ -188,6 +270,11 @@ class GitHubService:
             "github_updated_at": github_updated,
             "has_portfolio_meta": meta is not None,
             "cached_at": datetime.utcnow(),
+            # GitHub API stats (can be overridden by meta.json)
+            "lines_of_code": code_stats.get("estimated_lines") if code_stats else None,
+            "commit_count": commit_count,
+            "contributor_count": contributor_count or 1,
+            "languages": code_stats.get("languages", {}) if code_stats else {},
         }
         
         # Merge custom metadata if available
@@ -216,9 +303,10 @@ class GitHubService:
                 "is_ongoing": meta.is_ongoing,
                 "demo_url": meta.demo_url,
                 "documentation_url": meta.documentation_url,
-                "lines_of_code": meta.lines_of_code,
-                "commit_count": meta.commit_count,
-                "contributor_count": meta.contributor_count,
+                # Metrics: prefer meta.json values, fallback to GitHub API stats
+                "lines_of_code": meta.lines_of_code or repo_data.get("lines_of_code"),
+                "commit_count": meta.commit_count or repo_data.get("commit_count"),
+                "contributor_count": meta.contributor_count or repo_data.get("contributor_count", 1),
                 # New fields
                 "architecture": meta.architecture,
                 "system_components": [s.model_dump() if hasattr(s, 'model_dump') else s for s in meta.system_components],
@@ -252,7 +340,7 @@ class GitHubService:
         return Repository(**repo_data)
     
     async def fetch_all_repos_with_meta(self) -> list[Repository]:
-        """Fetch all repos and their portfolio metadata."""
+        """Fetch all repos and their portfolio metadata with stats."""
         github_repos = await self.fetch_user_repos()
         repositories = []
         
@@ -267,8 +355,19 @@ class GitHubService:
             # Try to fetch portfolio metadata
             meta = await self.fetch_portfolio_meta(owner, repo_name)
             
-            # Merge data
-            repo = self.merge_repo_data(github_repo, meta)
+            # Fetch additional stats from GitHub API
+            code_stats = await self.fetch_code_stats(owner, repo_name)
+            commit_count = await self.fetch_commit_count(owner, repo_name)
+            contributor_count = await self.fetch_contributor_count(owner, repo_name)
+            
+            # Merge data with stats
+            repo = self.merge_repo_data(
+                github_repo, 
+                meta,
+                code_stats=code_stats,
+                commit_count=commit_count,
+                contributor_count=contributor_count,
+            )
             repositories.append(repo)
         
         # Sort by priority (higher first), then by updated date

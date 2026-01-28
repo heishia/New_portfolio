@@ -45,12 +45,12 @@ class RepositoryService:
                     features, technologies, screenshots, challenges, achievements,
                     priority, roles, client_name, status, start_date, end_date,
                     is_ongoing, demo_url, documentation_url, lines_of_code,
-                    commit_count, contributor_count, has_portfolio_meta, cached_at
+                    commit_count, contributor_count, languages, has_portfolio_meta, cached_at
                 ) VALUES (
                     $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
                     $11, $12, $13, $14, $15, $16, $17, $18, $19,
                     $20, $21, $22, $23, $24, $25, $26, $27, $28,
-                    $29, $30, $31, $32, $33
+                    $29, $30, $31, $32, $33, $34
                 )
                 ON CONFLICT (id) DO UPDATE SET
                     name = EXCLUDED.name,
@@ -83,6 +83,7 @@ class RepositoryService:
                     lines_of_code = EXCLUDED.lines_of_code,
                     commit_count = EXCLUDED.commit_count,
                     contributor_count = EXCLUDED.contributor_count,
+                    languages = EXCLUDED.languages,
                     has_portfolio_meta = EXCLUDED.has_portfolio_meta,
                     cached_at = EXCLUDED.cached_at
             """,
@@ -117,6 +118,7 @@ class RepositoryService:
                 repo.lines_of_code,
                 repo.commit_count,
                 repo.contributor_count,
+                json.dumps(repo.languages),
                 repo.has_portfolio_meta,
                 repo.cached_at or datetime.utcnow(),
             )
@@ -206,6 +208,7 @@ class RepositoryService:
             lines_of_code=row["lines_of_code"],
             commit_count=row["commit_count"],
             contributor_count=row["contributor_count"] or 1,
+            languages=self._parse_json_field(row.get("languages"), {}),
             has_portfolio_meta=row["has_portfolio_meta"] or False,
             cached_at=row["cached_at"],
         )

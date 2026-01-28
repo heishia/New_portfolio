@@ -68,6 +68,7 @@ interface Repository {
   lines_of_code: number | null;
   commit_count: number | null;
   contributor_count: number;
+  languages: Record<string, number>;  // Language breakdown from GitHub API (language -> bytes)
   documentation_url: string | null;
   // NEW: Architecture & Technical Details
   architecture: string | null;
@@ -120,6 +121,7 @@ interface ProjectDisplay {
   lines_of_code: number | null;
   commit_count: number | null;
   contributor_count: number;
+  languages: Record<string, number>;  // Language breakdown (language -> bytes)
   // NEW: Architecture & Technical Details
   architecture: string | null;
   system_components: SystemComponent[];
@@ -169,6 +171,7 @@ const fallbackProjects: ProjectDisplay[] = [
     lines_of_code: null,
     commit_count: null,
     contributor_count: 1,
+    languages: {},
     // New fields
     architecture: null,
     system_components: [],
@@ -285,6 +288,7 @@ const transformReposToProjects = (repos: Repository[]): ProjectDisplay[] => {
       lines_of_code: repo.lines_of_code,
       commit_count: repo.commit_count,
       contributor_count: repo.contributor_count || 1,
+      languages: repo.languages || {},
       // NEW: Architecture & Technical Details
       architecture: repo.architecture || null,
       system_components: repo.system_components || [],
@@ -645,6 +649,7 @@ export function Works() {
           lines_of_code: nextRepo.lines_of_code,
           commit_count: nextRepo.commit_count,
           contributor_count: nextRepo.contributor_count || 1,
+          languages: nextRepo.languages || {},
           // NEW: Architecture & Technical Details
           architecture: nextRepo.architecture || null,
           system_components: nextRepo.system_components || [],
@@ -1398,6 +1403,175 @@ function ProjectDetailPage({
               )}
             </div>
           </div>
+
+          {/* ========== Code Statistics Section ========== */}
+          {(project.lines_of_code || project.commit_count || Object.keys(project.languages).length > 0) && (
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-neutral-100">
+              <h2 className="text-xl font-bold text-blue-600 mb-6 flex items-center gap-2">
+                <FileCode className="w-5 h-5" />
+                코드 통계
+              </h2>
+              
+              {/* Stats Grid */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                {project.lines_of_code && (
+                  <div className="bg-gradient-to-br from-blue-50 to-white rounded-xl p-4 border border-blue-100">
+                    <div className="flex items-center gap-2 mb-2">
+                      <FileCode className="w-4 h-4 text-blue-500" />
+                      <span className="text-xs text-neutral-500 font-medium">코드 라인</span>
+                    </div>
+                    <p className="text-2xl font-bold text-neutral-900">
+                      {project.lines_of_code.toLocaleString()}
+                    </p>
+                    <p className="text-xs text-neutral-400 mt-1">lines</p>
+                  </div>
+                )}
+                
+                {project.commit_count && (
+                  <div className="bg-gradient-to-br from-green-50 to-white rounded-xl p-4 border border-green-100">
+                    <div className="flex items-center gap-2 mb-2">
+                      <GitCommit className="w-4 h-4 text-green-500" />
+                      <span className="text-xs text-neutral-500 font-medium">커밋 수</span>
+                    </div>
+                    <p className="text-2xl font-bold text-neutral-900">
+                      {project.commit_count.toLocaleString()}
+                    </p>
+                    <p className="text-xs text-neutral-400 mt-1">commits</p>
+                  </div>
+                )}
+                
+                {project.contributor_count > 0 && (
+                  <div className="bg-gradient-to-br from-purple-50 to-white rounded-xl p-4 border border-purple-100">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Users className="w-4 h-4 text-purple-500" />
+                      <span className="text-xs text-neutral-500 font-medium">기여자</span>
+                    </div>
+                    <p className="text-2xl font-bold text-neutral-900">
+                      {project.contributor_count}
+                    </p>
+                    <p className="text-xs text-neutral-400 mt-1">contributors</p>
+                  </div>
+                )}
+                
+                {project.stargazers_count > 0 && (
+                  <div className="bg-gradient-to-br from-yellow-50 to-white rounded-xl p-4 border border-yellow-100">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Star className="w-4 h-4 text-yellow-500" />
+                      <span className="text-xs text-neutral-500 font-medium">스타</span>
+                    </div>
+                    <p className="text-2xl font-bold text-neutral-900">
+                      {project.stargazers_count}
+                    </p>
+                    <p className="text-xs text-neutral-400 mt-1">stars</p>
+                  </div>
+                )}
+              </div>
+              
+              {/* Language Breakdown */}
+              {Object.keys(project.languages).length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-neutral-700 mb-3 flex items-center gap-2">
+                    <Code2 className="w-4 h-4" />
+                    언어 비율
+                  </h3>
+                  
+                  {/* Language Bar */}
+                  <div className="h-3 rounded-full overflow-hidden bg-neutral-100 flex mb-3">
+                    {(() => {
+                      const totalBytes = Object.values(project.languages).reduce((a, b) => a + b, 0);
+                      const sortedLangs = Object.entries(project.languages)
+                        .sort((a, b) => b[1] - a[1]);
+                      
+                      const langColors: Record<string, string> = {
+                        'TypeScript': '#3178c6',
+                        'JavaScript': '#f7df1e',
+                        'Python': '#3776ab',
+                        'HTML': '#e34c26',
+                        'CSS': '#1572b6',
+                        'SCSS': '#cc6699',
+                        'Java': '#b07219',
+                        'Go': '#00add8',
+                        'Rust': '#dea584',
+                        'C++': '#f34b7d',
+                        'C': '#555555',
+                        'Shell': '#89e051',
+                        'Ruby': '#cc342d',
+                        'PHP': '#4f5d95',
+                        'Swift': '#fa7343',
+                        'Kotlin': '#7f52ff',
+                        'Dart': '#00b4ab',
+                        'Vue': '#41b883',
+                      };
+                      
+                      return sortedLangs.map(([lang, bytes], i) => {
+                        const percentage = (bytes / totalBytes) * 100;
+                        if (percentage < 1) return null;
+                        
+                        return (
+                          <div
+                            key={lang}
+                            className="h-full"
+                            style={{
+                              width: `${percentage}%`,
+                              backgroundColor: langColors[lang] || `hsl(${(i * 50) % 360}, 60%, 50%)`,
+                            }}
+                            title={`${lang}: ${percentage.toFixed(1)}%`}
+                          />
+                        );
+                      });
+                    })()}
+                  </div>
+                  
+                  {/* Language Legend */}
+                  <div className="flex flex-wrap gap-3">
+                    {(() => {
+                      const totalBytes = Object.values(project.languages).reduce((a, b) => a + b, 0);
+                      const sortedLangs = Object.entries(project.languages)
+                        .sort((a, b) => b[1] - a[1])
+                        .slice(0, 6);
+                      
+                      const langColors: Record<string, string> = {
+                        'TypeScript': '#3178c6',
+                        'JavaScript': '#f7df1e',
+                        'Python': '#3776ab',
+                        'HTML': '#e34c26',
+                        'CSS': '#1572b6',
+                        'SCSS': '#cc6699',
+                        'Java': '#b07219',
+                        'Go': '#00add8',
+                        'Rust': '#dea584',
+                        'C++': '#f34b7d',
+                        'C': '#555555',
+                        'Shell': '#89e051',
+                        'Ruby': '#cc342d',
+                        'PHP': '#4f5d95',
+                        'Swift': '#fa7343',
+                        'Kotlin': '#7f52ff',
+                        'Dart': '#00b4ab',
+                        'Vue': '#41b883',
+                      };
+                      
+                      return sortedLangs.map(([lang, bytes], i) => {
+                        const percentage = (bytes / totalBytes) * 100;
+                        return (
+                          <div key={lang} className="flex items-center gap-1.5 text-sm">
+                            <span
+                              className="w-3 h-3 rounded-full"
+                              style={{
+                                backgroundColor: langColors[lang] || `hsl(${(i * 50) % 360}, 60%, 50%)`,
+                              }}
+                            />
+                            <span className="text-neutral-700 font-medium">{lang}</span>
+                            <span className="text-neutral-400">{percentage.toFixed(1)}%</span>
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* ========== 1. 기술 스택 (Tech Stack) ========== */}
           {project.technologies.length > 0 && (

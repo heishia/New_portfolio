@@ -38,10 +38,11 @@ CREATE TABLE repositories (
   demo_url TEXT,
   documentation_url TEXT,
   
-  -- Metrics
+  -- Metrics (from GitHub API or meta.json override)
   lines_of_code INT,
   commit_count INT,
   contributor_count INT DEFAULT 1,
+  languages JSONB DEFAULT '{}',  -- Language breakdown (language -> bytes)
   
   -- Cache management
   has_portfolio_meta BOOLEAN DEFAULT false,
@@ -58,3 +59,117 @@ CREATE INDEX idx_repos_status ON repositories(status);
 COMMENT ON TABLE repositories IS 'Cached GitHub repositories with custom portfolio metadata';
 COMMENT ON COLUMN repositories.has_portfolio_meta IS 'True if repo has portfolio/meta.json';
 COMMENT ON COLUMN repositories.cached_at IS 'Last time this record was updated from GitHub';
+
+
+-- ============================================
+-- Admin Users Table
+-- ============================================
+DROP TABLE IF EXISTS admin_users CASCADE;
+
+CREATE TABLE admin_users (
+  id SERIAL PRIMARY KEY,
+  email VARCHAR(255) UNIQUE NOT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  name VARCHAR(100),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_admin_email ON admin_users(email);
+
+COMMENT ON TABLE admin_users IS 'Admin users for dashboard access';
+
+
+-- ============================================
+-- Admin Sessions Table
+-- ============================================
+DROP TABLE IF EXISTS admin_sessions CASCADE;
+
+CREATE TABLE admin_sessions (
+  id SERIAL PRIMARY KEY,
+  user_id INT NOT NULL REFERENCES admin_users(id) ON DELETE CASCADE,
+  token VARCHAR(255) UNIQUE NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_session_token ON admin_sessions(token);
+CREATE INDEX idx_session_expires ON admin_sessions(expires_at);
+
+COMMENT ON TABLE admin_sessions IS 'Admin user sessions for authentication';
+
+
+-- ============================================
+-- Analytics Tables
+-- ============================================
+
+-- Page Views
+DROP TABLE IF EXISTS page_views CASCADE;
+
+CREATE TABLE page_views (
+  id SERIAL PRIMARY KEY,
+  session_id VARCHAR(64) NOT NULL,
+  visitor_id VARCHAR(64) NOT NULL,
+  page_url TEXT NOT NULL,
+  page_title VARCHAR(500),
+  referrer TEXT,
+  device_type VARCHAR(20),
+  browser VARCHAR(50),
+  os VARCHAR(50),
+  screen_width INT,
+  screen_height INT,
+  country VARCHAR(2),
+  city VARCHAR(100),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_pv_session ON page_views(session_id);
+CREATE INDEX idx_pv_visitor ON page_views(visitor_id);
+CREATE INDEX idx_pv_created ON page_views(created_at);
+
+COMMENT ON TABLE page_views IS 'Analytics page view tracking';
+
+
+-- Sessions
+DROP TABLE IF EXISTS sessions CASCADE;
+
+CREATE TABLE sessions (
+  id VARCHAR(64) PRIMARY KEY,
+  visitor_id VARCHAR(64) NOT NULL,
+  entry_page TEXT NOT NULL,
+  exit_page TEXT,
+  page_views INT DEFAULT 1,
+  started_at TIMESTAMPTZ DEFAULT NOW(),
+  ended_at TIMESTAMPTZ,
+  duration_seconds INT,
+  is_bounce BOOLEAN DEFAULT TRUE,
+  utm_source VARCHAR(200),
+  utm_medium VARCHAR(200),
+  utm_campaign VARCHAR(200)
+);
+
+CREATE INDEX idx_sess_visitor ON sessions(visitor_id);
+CREATE INDEX idx_sess_started ON sessions(started_at);
+CREATE INDEX idx_sess_bounce ON sessions(is_bounce);
+
+COMMENT ON TABLE sessions IS 'Analytics visitor sessions';
+
+
+-- Analytics Events
+DROP TABLE IF EXISTS analytics_events CASCADE;
+
+CREATE TABLE analytics_events (
+  id SERIAL PRIMARY KEY,
+  session_id VARCHAR(64) NOT NULL,
+  visitor_id VARCHAR(64) NOT NULL,
+  event_name VARCHAR(100) NOT NULL,
+  event_data JSONB,
+  page_url TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_evt_session ON analytics_events(session_id);
+CREATE INDEX idx_evt_name ON analytics_events(event_name);
+CREATE INDEX idx_evt_created ON analytics_events(created_at);
+
+COMMENT ON TABLE analytics_events IS 'Analytics custom events tracking';

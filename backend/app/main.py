@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.database import init_db, close_db
-from app.routers import repos
+from app.routers import repos, auth, analytics, upload
 
 
 @asynccontextmanager
@@ -42,6 +42,9 @@ def create_app() -> FastAPI:
     
     # Include routers
     app.include_router(repos.router, prefix="/api")
+    app.include_router(auth.router, prefix="/api")
+    app.include_router(analytics.router, prefix="/api")
+    app.include_router(upload.router, prefix="/api")
     
     # Health check endpoint
     @app.get("/health")

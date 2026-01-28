@@ -170,10 +170,11 @@ class Repository(BaseModel):
     demo_url: Optional[str] = None
     documentation_url: Optional[str] = None
     
-    # Metrics
+    # Metrics (from GitHub API or meta.json override)
     lines_of_code: Optional[int] = None
     commit_count: Optional[int] = None
     contributor_count: int = 1
+    languages: dict = {}  # Language breakdown from GitHub API (language -> bytes)
     
     # === NEW: Architecture & Technical Details ===
     architecture: Optional[str] = None

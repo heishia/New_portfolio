@@ -1,15 +1,28 @@
 import logging
-from typing import Optional
+from typing import Optional, List
 
-from fastapi import APIRouter, HTTPException, Header, BackgroundTasks
+from fastapi import APIRouter, HTTPException, Header, BackgroundTasks, Depends
+from pydantic import BaseModel
 
 from app.config import get_settings
 from app.schemas.repo import Repository, RepositoryListResponse, RefreshResponse
 from app.services.github import github_service
 from app.services.repository import repository_service
+from app.routers.auth import get_current_user
+from app.database import get_pool
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["repositories"])
+
+
+class ScreenshotItem(BaseModel):
+    url: str
+    caption: Optional[str] = None
+    order: int = 0
+
+
+class UpdateScreenshotsRequest(BaseModel):
+    screenshots: List[ScreenshotItem]
 
 
 @router.get("/repos", response_model=RepositoryListResponse)
@@ -120,3 +133,47 @@ async def refresh_repositories_async(
     background_tasks.add_task(refresh_task)
     
     return {"message": "Refresh started in background"}
+
+
+@router.put("/repos/{repo_id}/screenshots")
+async def update_screenshots(
+    repo_id: int,
+    request: UpdateScreenshotsRequest,
+    user: dict = Depends(get_current_user)
+):
+    """Update repository screenshots (admin only)."""
+    pool = get_pool()
+    
+    async with pool.acquire() as conn:
+        # 레포지토리 존재 확인
+        exists = await conn.fetchval(
+            "SELECT 1 FROM repositories WHERE id = $1",
+            repo_id
+        )
+        
+        if not exists:
+            raise HTTPException(status_code=404, detail="Repository not found")
+        
+        # 스크린샷 JSON 변환
+        screenshots_json = [
+            {
+                "url": s.url,
+                "caption": s.caption,
+                "order": s.order
+            }
+            for s in request.screenshots
+        ]
+        
+        # 업데이트
+        await conn.execute(
+            """
+            UPDATE repositories 
+            SET screenshots = $2::jsonb,
+                cached_at = NOW()
+            WHERE id = $1
+            """,
+            repo_id,
+            screenshots_json
+        )
+    
+    return {"success": True, "count": len(request.screenshots)}

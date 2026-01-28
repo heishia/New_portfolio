@@ -103,6 +103,9 @@ class GitHubService:
         story = data.get("story", {})
         client = data.get("client", {})
         
+        # New: architecture section
+        architecture_section = data.get("architecture", {})
+        
         return PortfolioMeta(
             title=display.get("title"),
             subtitle=display.get("subtitle"),
@@ -127,6 +130,15 @@ class GitHubService:
             achievements=story.get("achievements"),
             roles=data.get("roles", []),
             client_name=client.get("name") if isinstance(client, dict) else None,
+            # New fields
+            architecture=architecture_section.get("overview") if isinstance(architecture_section, dict) else None,
+            system_components=architecture_section.get("system_components", []) if isinstance(architecture_section, dict) else [],
+            core_principles=architecture_section.get("core_principles", []) if isinstance(architecture_section, dict) else [],
+            auth_flow=architecture_section.get("auth_flow", []) if isinstance(architecture_section, dict) else [],
+            data_models=architecture_section.get("data_models", []) if isinstance(architecture_section, dict) else [],
+            technical_challenges=data.get("technical_challenges", []),
+            key_achievements=data.get("key_achievements", []),
+            code_snippets=data.get("code_snippets", []),
         )
     
     def build_screenshot_urls(
@@ -207,6 +219,15 @@ class GitHubService:
                 "lines_of_code": meta.lines_of_code,
                 "commit_count": meta.commit_count,
                 "contributor_count": meta.contributor_count,
+                # New fields
+                "architecture": meta.architecture,
+                "system_components": [s.model_dump() if hasattr(s, 'model_dump') else s for s in meta.system_components],
+                "core_principles": [p.model_dump() if hasattr(p, 'model_dump') else p for p in meta.core_principles],
+                "auth_flow": meta.auth_flow,
+                "data_models": [d.model_dump() if hasattr(d, 'model_dump') else d for d in meta.data_models],
+                "technical_challenges": [c.model_dump() if hasattr(c, 'model_dump') else c for c in meta.technical_challenges],
+                "key_achievements": meta.key_achievements,
+                "code_snippets": [s.model_dump() if hasattr(s, 'model_dump') else s for s in meta.code_snippets],
             })
         else:
             # Use GitHub data as fallback
@@ -217,6 +238,15 @@ class GitHubService:
                 "technologies": [],
                 "screenshots": [],
                 "roles": [],
+                # New fields default
+                "architecture": None,
+                "system_components": [],
+                "core_principles": [],
+                "auth_flow": [],
+                "data_models": [],
+                "technical_challenges": [],
+                "key_achievements": [],
+                "code_snippets": [],
             })
         
         return Repository(**repo_data)

@@ -7,6 +7,35 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 const API_SECRET = import.meta.env.VITE_API_SECRET || '';
 
 // --- Types ---
+interface SystemComponent {
+  name: string;
+  description: string;
+}
+
+interface CorePrinciple {
+  title: string;
+  description: string;
+}
+
+interface TechnicalChallenge {
+  title: string;
+  challenge: string;
+  solution: string;
+}
+
+interface CodeSnippet {
+  title: string;
+  description: string;
+  file_path: string;
+  language: string;
+  code: string;
+}
+
+interface DataModel {
+  name: string;
+  description: string;
+}
+
 interface Repository {
   id: number;
   name: string;
@@ -20,7 +49,7 @@ interface Repository {
   subtitle: string | null;
   project_type: string[];
   detailed_description: string | null;
-  features: Array<{ title: string; description: string }>;
+  features: Array<{ title: string; description: string; sub_description?: string }>;
   technologies: Array<{ name: string; category: string; version?: string }>;
   screenshots: Array<{ file: string; caption: string; url?: string; type?: string }>;
   challenges: string | null;
@@ -40,6 +69,15 @@ interface Repository {
   commit_count: number | null;
   contributor_count: number;
   documentation_url: string | null;
+  // NEW: Architecture & Technical Details
+  architecture: string | null;
+  system_components: SystemComponent[];
+  core_principles: CorePrinciple[];
+  auth_flow: string[];
+  data_models: DataModel[];
+  technical_challenges: TechnicalChallenge[];
+  key_achievements: string[];
+  code_snippets: CodeSnippet[];
 }
 
 interface ProjectDisplay {
@@ -60,7 +98,7 @@ interface ProjectDisplay {
   demo_url: string | null;
   documentation_url: string | null;
   technologies: Array<{ name: string; category: string; version?: string }>;
-  features: Array<{ title: string; description: string }>;
+  features: Array<{ title: string; description: string; sub_description?: string }>;
   detailed_description: string | null;
   // Tags for filtering/display
   project_type: string[];
@@ -82,6 +120,15 @@ interface ProjectDisplay {
   lines_of_code: number | null;
   commit_count: number | null;
   contributor_count: number;
+  // NEW: Architecture & Technical Details
+  architecture: string | null;
+  system_components: SystemComponent[];
+  core_principles: CorePrinciple[];
+  auth_flow: string[];
+  data_models: DataModel[];
+  technical_challenges: TechnicalChallenge[];
+  key_achievements: string[];
+  code_snippets: CodeSnippet[];
 }
 
 // --- Fallback Data (shown when API unavailable) ---
@@ -122,6 +169,15 @@ const fallbackProjects: ProjectDisplay[] = [
     lines_of_code: null,
     commit_count: null,
     contributor_count: 1,
+    // New fields
+    architecture: null,
+    system_components: [],
+    core_principles: [],
+    auth_flow: [],
+    data_models: [],
+    technical_challenges: [],
+    key_achievements: [],
+    code_snippets: [],
   }
 ];
 
@@ -219,7 +275,7 @@ const transformReposToProjects = (repos: Repository[]): ProjectDisplay[] => {
       stargazers_count: repo.stargazers_count,
       language: repo.language,
       full_name: repo.full_name,
-      // New metadata fields
+      // Metadata fields
       status: repo.status || 'completed',
       start_date: repo.start_date,
       end_date: repo.end_date,
@@ -229,6 +285,15 @@ const transformReposToProjects = (repos: Repository[]): ProjectDisplay[] => {
       lines_of_code: repo.lines_of_code,
       commit_count: repo.commit_count,
       contributor_count: repo.contributor_count || 1,
+      // NEW: Architecture & Technical Details
+      architecture: repo.architecture || null,
+      system_components: repo.system_components || [],
+      core_principles: repo.core_principles || [],
+      auth_flow: repo.auth_flow || [],
+      data_models: repo.data_models || [],
+      technical_challenges: repo.technical_challenges || [],
+      key_achievements: repo.key_achievements || [],
+      code_snippets: repo.code_snippets || [],
     });
   }
   
@@ -264,34 +329,95 @@ export function Works() {
   // Computed projects
   const projects = transformReposToProjects(repositories);
   
+  // Friendly tag names mapping (technical term -> user-friendly name)
+  const friendlyTagNames: Record<string, string> = {
+    // Project Types (Korean friendly)
+    'web': '웹사이트',
+    'website': '웹사이트',
+    'webapp': '웹앱',
+    'mobile': '모바일앱',
+    'mobile-app': '모바일앱',
+    'desktop': '데스크탑',
+    'cli': 'CLI 도구',
+    'automation': '자동화',
+    'api': 'API/백엔드',
+    'backend': 'API/백엔드',
+    'fullstack': '풀스택',
+    'library': '라이브러리',
+    'tool': '개발도구',
+    // Popular Languages/Frameworks
+    'python': 'Python',
+    'javascript': 'JavaScript',
+    'typescript': 'TypeScript',
+    'react': 'React',
+    'nextjs': 'Next.js',
+    'next.js': 'Next.js',
+    'vue': 'Vue',
+    'go': 'Go',
+    'golang': 'Go',
+    'rust': 'Rust',
+    'java': 'Java',
+    'kotlin': 'Kotlin',
+    'swift': 'Swift',
+    'flutter': 'Flutter',
+    'node': 'Node.js',
+    'nodejs': 'Node.js',
+  };
+
+  // Priority tags for better UX (shown first if available)
+  const priorityTags = [
+    '웹사이트', '모바일앱', '데스크탑', '자동화', 'API/백엔드',
+    'Python', 'TypeScript', 'React', 'Next.js', 'Go'
+  ];
+
   // Extract unique tags for quick filters (tech stack + project types)
   const quickFilterTags = React.useMemo(() => {
     const tagCounts = new Map<string, number>();
+    const originalToFriendly = new Map<string, string>();
     
     repositories.forEach(repo => {
-      // Count project types
+      // Count project types with friendly names
       repo.project_type?.forEach(type => {
-        const normalizedType = type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
-        tagCounts.set(normalizedType, (tagCounts.get(normalizedType) || 0) + 1);
+        const lowerType = type.toLowerCase();
+        const friendlyName = friendlyTagNames[lowerType] || (type.charAt(0).toUpperCase() + type.slice(1).toLowerCase());
+        tagCounts.set(friendlyName, (tagCounts.get(friendlyName) || 0) + 1);
+        originalToFriendly.set(type.toLowerCase(), friendlyName);
       });
       
-      // Count popular technologies
+      // Count main language
+      if (repo.language) {
+        const lowerLang = repo.language.toLowerCase();
+        const friendlyName = friendlyTagNames[lowerLang] || repo.language;
+        tagCounts.set(friendlyName, (tagCounts.get(friendlyName) || 0) + 1);
+      }
+      
+      // Count popular technologies (only well-known ones)
       repo.technologies?.forEach(tech => {
-        tagCounts.set(tech.name, (tagCounts.get(tech.name) || 0) + 1);
-      });
-      
-      // Count GitHub topics
-      repo.topics?.forEach(topic => {
-        const normalizedTopic = topic.charAt(0).toUpperCase() + topic.slice(1).toLowerCase();
-        tagCounts.set(normalizedTopic, (tagCounts.get(normalizedTopic) || 0) + 1);
+        const lowerName = tech.name.toLowerCase();
+        if (friendlyTagNames[lowerName]) {
+          const friendlyName = friendlyTagNames[lowerName];
+          tagCounts.set(friendlyName, (tagCounts.get(friendlyName) || 0) + 1);
+        }
       });
     });
     
-    // Sort by count and take top 8
-    return Array.from(tagCounts.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 8)
-      .map(([tag]) => tag);
+    // Sort: priority tags first, then by count
+    const allTags = Array.from(tagCounts.entries());
+    const sortedTags = allTags.sort((a, b) => {
+      const aPriority = priorityTags.indexOf(a[0]);
+      const bPriority = priorityTags.indexOf(b[0]);
+      
+      // Both have priority: sort by priority order
+      if (aPriority !== -1 && bPriority !== -1) return aPriority - bPriority;
+      // Only a has priority
+      if (aPriority !== -1) return -1;
+      // Only b has priority
+      if (bPriority !== -1) return 1;
+      // Neither has priority: sort by count
+      return b[1] - a[1];
+    });
+    
+    return sortedTags.slice(0, 8).map(([tag]) => tag);
   }, [repositories]);
   
   // Filtered projects based on search (enhanced to search more fields)
@@ -464,7 +590,7 @@ export function Works() {
           stargazers_count: nextRepo.stargazers_count,
           language: nextRepo.language,
           full_name: nextRepo.full_name,
-          // New metadata fields
+          // Metadata fields
           status: nextRepo.status || 'completed',
           start_date: nextRepo.start_date,
           end_date: nextRepo.end_date,
@@ -474,6 +600,15 @@ export function Works() {
           lines_of_code: nextRepo.lines_of_code,
           commit_count: nextRepo.commit_count,
           contributor_count: nextRepo.contributor_count || 1,
+          // NEW: Architecture & Technical Details
+          architecture: nextRepo.architecture || null,
+          system_components: nextRepo.system_components || [],
+          core_principles: nextRepo.core_principles || [],
+          auth_flow: nextRepo.auth_flow || [],
+          data_models: nextRepo.data_models || [],
+          technical_challenges: nextRepo.technical_challenges || [],
+          key_achievements: nextRepo.key_achievements || [],
+          code_snippets: nextRepo.code_snippets || [],
         });
       }
     };
@@ -630,7 +765,7 @@ export function Works() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by tech, tags, or content..."
+                placeholder="프로젝트 검색 (기술, 유형, 키워드)"
                 className="w-full pl-14 pr-24 py-5 md:py-6 2xl:py-5 bg-transparent text-[15px] 2xl:text-xl placeholder:text-neutral-400 focus:outline-none"
                 style={{ fontFamily: "'Inter', sans-serif" }}
                 onMouseDown={(e) => e.stopPropagation()}
@@ -686,7 +821,7 @@ export function Works() {
                 <button
                   key={tag}
                   onClick={() => setSearchQuery(searchQuery === tag ? '' : tag)}
-                  className={`px-4 py-2 2xl:px-6 2xl:py-3 text-xs md:text-sm 2xl:text-base font-mono uppercase tracking-wider rounded-full transition-all hover:scale-105 ${
+                  className={`px-4 py-2 2xl:px-6 2xl:py-3 text-xs md:text-sm 2xl:text-base font-medium rounded-full transition-all hover:scale-105 ${
                     searchQuery.toLowerCase() === tag.toLowerCase()
                       ? 'bg-black text-white border border-black'
                       : 'bg-white/60 hover:bg-white border border-black/10 hover:border-black/20'
@@ -702,12 +837,12 @@ export function Works() {
                 </button>
               ))
             ) : (
-              // Fallback tags when no data loaded
-              ['Web', 'Mobile', 'Desktop', 'Automation'].map((tag) => (
+              // Fallback tags when no data loaded - user-friendly names
+              ['웹사이트', '모바일앱', '자동화', 'Python', 'React', 'TypeScript'].map((tag) => (
                 <button
                   key={tag}
                   onClick={() => setSearchQuery(searchQuery === tag ? '' : tag)}
-                  className={`px-4 py-2 2xl:px-6 2xl:py-3 text-xs md:text-sm 2xl:text-base font-mono uppercase tracking-wider rounded-full transition-all hover:scale-105 ${
+                  className={`px-4 py-2 2xl:px-6 2xl:py-3 text-xs md:text-sm 2xl:text-base font-medium rounded-full transition-all hover:scale-105 ${
                     searchQuery.toLowerCase() === tag.toLowerCase()
                       ? 'bg-black text-white border border-black'
                       : 'bg-white/60 hover:bg-white border border-black/10 hover:border-black/20'

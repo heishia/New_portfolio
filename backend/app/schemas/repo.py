@@ -173,6 +173,9 @@ class Repository(BaseModel):
     # Cover image for portfolio listing
     cover_image: Optional[str] = None
     
+    # Visibility for frontend (admin can toggle)
+    is_visible: bool = True
+    
     # Metrics (from GitHub API or meta.json override)
     lines_of_code: Optional[int] = None
     commit_count: Optional[int] = None

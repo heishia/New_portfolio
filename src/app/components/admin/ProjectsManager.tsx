@@ -2,7 +2,7 @@ import { useState, useRef, useCallback } from 'react';
 import useSWR from 'swr';
 import { 
   Upload, Trash2, Loader2, Image as ImageIcon, 
-  ExternalLink, Star, X, Plus, ChevronDown, ChevronUp
+  ExternalLink, Star, X, Plus, ChevronDown, ChevronUp, Eye, EyeOff, RefreshCw
 } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
@@ -33,6 +33,7 @@ interface Repository {
   cover_image: string | null;
   screenshots: ScreenshotItem[];
   has_portfolio_meta: boolean;
+  is_visible: boolean;
 }
 
 interface RepositoryListResponse {
@@ -57,8 +58,9 @@ function getImageUrl(imageKey: string | null): string | null {
 }
 
 export default function ProjectsManager() {
+  // 관리자용 API 사용 (비활성화된 프로젝트도 포함)
   const { data, isLoading, mutate } = useSWR<RepositoryListResponse>(
-    `${API_BASE}/api/repos`,
+    `${API_BASE}/api/admin/repos`,
     fetcher
   );
   
@@ -70,8 +72,76 @@ export default function ProjectsManager() {
   // 업로드 상태
   const [uploadingFor, setUploadingFor] = useState<number | null>(null);
   const [savingFor, setSavingFor] = useState<number | null>(null);
+  
+  // GitHub 동기화 상태
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   const fileInputRefs = useRef<Map<number, HTMLInputElement>>(new Map());
+
+  // GitHub에서 새 레포지토리 불러오기
+  const handleSyncFromGitHub = async () => {
+    const token = localStorage.getItem('admin_token');
+    setIsSyncing(true);
+    setSyncResult(null);
+
+    try {
+      const res = await fetch(`${API_BASE}/api/repos/refresh`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!res.ok) throw new Error('Sync failed');
+      
+      const result = await res.json();
+      setSyncResult({
+        message: `${result.updated_count}개의 레포지토리를 동기화했습니다.`,
+        type: 'success'
+      });
+      
+      // 목록 새로고침
+      mutate();
+      
+      // 3초 후 메시지 숨김
+      setTimeout(() => setSyncResult(null), 3000);
+    } catch (error) {
+      console.error('Sync failed:', error);
+      setSyncResult({
+        message: '동기화에 실패했습니다.',
+        type: 'error'
+      });
+      setTimeout(() => setSyncResult(null), 3000);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  // visibility 토글
+  const handleToggleVisibility = async (projectId: number, currentVisibility: boolean) => {
+    const token = localStorage.getItem('admin_token');
+    setSavingFor(projectId);
+
+    try {
+      const res = await fetch(`${API_BASE}/api/repos/${projectId}/visibility`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ is_visible: !currentVisibility })
+      });
+
+      if (!res.ok) throw new Error('Update failed');
+      mutate();
+    } catch (error) {
+      console.error('Toggle visibility failed:', error);
+      alert('상태 변경에 실패했습니다.');
+    } finally {
+      setSavingFor(null);
+    }
+  };
 
   // 다중 파일 업로드 처리
   const handleFilesUpload = async (projectId: number, files: FileList) => {
@@ -236,12 +306,38 @@ export default function ProjectsManager() {
   return (
     <div className="space-y-6">
       {/* 헤더 */}
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900">프로젝트 관리</h2>
-        <p className="text-sm text-gray-500 mt-1">
-          각 프로젝트의 스크린샷을 업로드하고 대표이미지를 설정합니다.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">프로젝트 관리</h2>
+          <p className="text-sm text-gray-500 mt-1">
+            각 프로젝트의 스크린샷을 업로드하고 대표이미지를 설정합니다.
+          </p>
+          {data?.last_updated && (
+            <p className="text-xs text-gray-400 mt-1">
+              마지막 동기화: {new Date(data.last_updated).toLocaleString('ko-KR')}
+            </p>
+          )}
+        </div>
+        <button
+          onClick={handleSyncFromGitHub}
+          disabled={isSyncing}
+          className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0"
+        >
+          <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
+          {isSyncing ? '동기화 중...' : 'GitHub에서 불러오기'}
+        </button>
       </div>
+
+      {/* 동기화 결과 메시지 */}
+      {syncResult && (
+        <div className={`px-4 py-3 rounded-lg text-sm ${
+          syncResult.type === 'success' 
+            ? 'bg-green-50 text-green-700 border border-green-200' 
+            : 'bg-red-50 text-red-700 border border-red-200'
+        }`}>
+          {syncResult.message}
+        </div>
+      )}
 
       {/* 프로젝트 목록 */}
       <div className="space-y-3">
@@ -256,7 +352,9 @@ export default function ProjectsManager() {
           return (
             <div 
               key={project.id} 
-              className="bg-white rounded-xl border shadow-sm overflow-hidden"
+              className={`rounded-xl border shadow-sm overflow-hidden ${
+                project.is_visible ? 'bg-white' : 'bg-gray-100 opacity-75'
+              }`}
             >
               {/* 프로젝트 헤더 - 클릭하면 확장 */}
               <button
@@ -280,9 +378,16 @@ export default function ProjectsManager() {
 
                 {/* 프로젝트 정보 */}
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-medium text-gray-900 truncate">
-                    {project.title || project.name}
-                  </h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-medium text-gray-900 truncate">
+                      {project.title || project.name}
+                    </h3>
+                    {!project.is_visible && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-200 text-gray-600">
+                        숨김
+                      </span>
+                    )}
+                  </div>
                   {project.description && (
                     <p className="text-sm text-gray-500 truncate mt-0.5">
                       {project.description}
@@ -302,6 +407,27 @@ export default function ProjectsManager() {
                     <ChevronDown className="w-5 h-5" />
                   )}
                 </div>
+
+                {/* Visibility 토글 버튼 */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleToggleVisibility(project.id, project.is_visible);
+                  }}
+                  disabled={isProcessing}
+                  className={`p-2 rounded-lg transition-colors shrink-0 ${
+                    project.is_visible 
+                      ? 'text-green-600 hover:bg-green-50 hover:text-green-700' 
+                      : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'
+                  }`}
+                  title={project.is_visible ? '클릭하면 숨김' : '클릭하면 표시'}
+                >
+                  {project.is_visible ? (
+                    <Eye className="w-4 h-4" />
+                  ) : (
+                    <EyeOff className="w-4 h-4" />
+                  )}
+                </button>
 
                 {/* GitHub 링크 */}
                 <a

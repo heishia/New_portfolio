@@ -41,6 +41,9 @@ CREATE TABLE repositories (
   -- Cover image for portfolio listing
   cover_image TEXT,
   
+  -- Visibility for frontend (admin can toggle)
+  is_visible BOOLEAN DEFAULT true,
+  
   -- Metrics (from GitHub API or meta.json override)
   lines_of_code INT,
   commit_count INT,

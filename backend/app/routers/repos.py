@@ -14,6 +14,7 @@ from app.database import get_pool
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["repositories"])
+# Force reload
 
 
 class ScreenshotItem(BaseModel):
@@ -30,16 +31,42 @@ class UpdateCoverImageRequest(BaseModel):
     cover_image: Optional[str] = None
 
 
+class UpdateVisibilityRequest(BaseModel):
+    is_visible: bool
+
+
 @router.get("/repos", response_model=RepositoryListResponse)
 async def get_repositories():
     """
-    Get cached repository list.
+    Get cached repository list (visible only, for frontend).
     
     Returns repositories sorted by priority (highest first),
     then by last updated date.
     """
     try:
-        repos = await repository_service.get_all()
+        repos = await repository_service.get_all(include_hidden=False)
+        last_updated = await repository_service.get_last_updated()
+        
+        return RepositoryListResponse(
+            repositories=repos,
+            total=len(repos),
+            last_updated=last_updated,
+        )
+    except Exception as e:
+        logger.error(f"Failed to get repositories: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch repositories")
+
+
+@router.get("/admin/repos", response_model=RepositoryListResponse)
+async def get_repositories_admin(user: dict = Depends(get_current_user)):
+    """
+    Get all repositories including hidden ones (admin only).
+    
+    Returns all repositories sorted by priority (highest first),
+    then by last updated date.
+    """
+    try:
+        repos = await repository_service.get_all(include_hidden=True)
         last_updated = await repository_service.get_last_updated()
         
         return RepositoryListResponse(
@@ -216,3 +243,37 @@ async def update_cover_image(
         )
     
     return {"success": True, "cover_image": request.cover_image}
+
+
+@router.put("/repos/{repo_id}/visibility")
+async def update_visibility(
+    repo_id: int,
+    request: UpdateVisibilityRequest,
+    user: dict = Depends(get_current_user)
+):
+    """Update repository visibility (admin only)."""
+    pool = get_pool()
+    
+    async with pool.acquire() as conn:
+        # 레포지토리 존재 확인
+        exists = await conn.fetchval(
+            "SELECT 1 FROM repositories WHERE id = $1",
+            repo_id
+        )
+        
+        if not exists:
+            raise HTTPException(status_code=404, detail="Repository not found")
+        
+        # 업데이트
+        await conn.execute(
+            """
+            UPDATE repositories 
+            SET is_visible = $2,
+                cached_at = NOW()
+            WHERE id = $1
+            """,
+            repo_id,
+            request.is_visible
+        )
+    
+    return {"success": True, "is_visible": request.is_visible}

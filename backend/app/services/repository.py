@@ -12,13 +12,25 @@ logger = logging.getLogger(__name__)
 class RepositoryService:
     """Service for repository database operations."""
     
-    async def get_all(self) -> list[Repository]:
-        """Get all cached repositories ordered by priority."""
+    async def get_all(self, include_hidden: bool = False) -> list[Repository]:
+        """Get all cached repositories ordered by priority.
+        
+        Args:
+            include_hidden: If True, return all repos including hidden ones (for admin).
+                          If False, return only visible repos (for frontend).
+        """
         async with get_connection() as conn:
-            rows = await conn.fetch("""
-                SELECT * FROM repositories
-                ORDER BY priority DESC, github_updated_at DESC NULLS LAST
-            """)
+            if include_hidden:
+                rows = await conn.fetch("""
+                    SELECT * FROM repositories
+                    ORDER BY priority DESC, github_updated_at DESC NULLS LAST
+                """)
+            else:
+                rows = await conn.fetch("""
+                    SELECT * FROM repositories
+                    WHERE is_visible = true
+                    ORDER BY priority DESC, github_updated_at DESC NULLS LAST
+                """)
             
             return [self._row_to_repo(row) for row in rows]
     
@@ -165,6 +177,20 @@ class RepositoryService:
             row = await conn.fetchrow("SELECT COUNT(*) as count FROM repositories")
             return row["count"] if row else 0
     
+    async def update_visibility(self, repo_id: int, is_visible: bool) -> bool:
+        """Update repository visibility."""
+        async with get_connection() as conn:
+            result = await conn.execute(
+                """
+                UPDATE repositories 
+                SET is_visible = $2, cached_at = NOW()
+                WHERE id = $1
+                """,
+                repo_id,
+                is_visible
+            )
+            return result == "UPDATE 1"
+    
     def _parse_json_field(self, value, default=None):
         """Parse JSON field from database (handles both string and already parsed values)."""
         if default is None:
@@ -212,6 +238,7 @@ class RepositoryService:
             demo_url=row["demo_url"],
             documentation_url=row["documentation_url"],
             cover_image=row.get("cover_image"),
+            is_visible=row.get("is_visible", True),
             lines_of_code=row["lines_of_code"],
             commit_count=row["commit_count"],
             contributor_count=row["contributor_count"] or 1,

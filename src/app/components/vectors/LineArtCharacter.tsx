@@ -8,7 +8,7 @@ export function LineArtCharacter() {
       y: [0, -3, 0],
       transition: {
         duration: 4,
-        ease: "easeInOut",
+        ease: "easeInOut" as const,
         repeat: Infinity,
       }
     }
@@ -19,7 +19,7 @@ export function LineArtCharacter() {
       rotate: [0, 2, 0],
       transition: {
         duration: 0.5,
-        ease: "easeInOut",
+        ease: "easeInOut" as const,
         repeat: Infinity,
       }
     }
@@ -30,7 +30,7 @@ export function LineArtCharacter() {
       rotate: [0, 10, 0],
       transition: {
         duration: 1,
-        ease: "easeInOut",
+        ease: "easeInOut" as const,
         repeat: Infinity,
       }
     }
@@ -99,8 +99,8 @@ export function LineArtCharacter() {
           {/* Dog Head (Animated) */}
           <motion.g
             style={{ originX: 0.5, originY: 0.9 }}
-            animate={{ rotate: [0, 5, -5, 0] }}
-            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+            animate={{ rotate: [0, 5, -5, 0] } as any}
+            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" } as any}
           >
              <circle cx="70" cy="330" r="25" fill="#E5E5E5" stroke="#333" strokeWidth="3" />
              {/* Ears */}

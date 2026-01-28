@@ -219,6 +219,22 @@ const LARGE_DESKTOP_RADIUS = 800;
 const MOBILE_VISIBLE_COUNT = 4;
 const MOBILE_RADIUS = (MOBILE_VISIBLE_COUNT * (ITEM_WIDTH + GAP)) / (2 * Math.PI);
 
+// --- Markdown Helper ---
+// 간단한 마크다운 변환 (bold만 지원)
+const parseSimpleMarkdown = (text: string): React.ReactNode => {
+  if (!text) return text;
+  
+  // **text** → <strong>text</strong>
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={i} className="font-semibold">{part.slice(2, -2)}</strong>;
+    }
+    return part;
+  });
+};
+
 // --- Helper Functions ---
 const transformReposToProjects = (repos: Repository[]): ProjectDisplay[] => {
   if (repos.length === 0) return fallbackProjects;
@@ -336,14 +352,17 @@ export function Works() {
   // Friendly tag names mapping (technical term -> consumer-friendly name)
   const friendlyTagNames: Record<string, string> = {
     // === 소비자 친화적 프로젝트 유형 ===
-    'web': '웹사이트',
-    'website': '웹사이트',
+    'web': '홈페이지',
+    'website': '홈페이지',
+    'homepage': '홈페이지',
     'webapp': '웹앱',
     'mobile': '모바일 어플',
     'mobile-app': '모바일 어플',
     'app': '모바일 어플',
-    'desktop': '데스크탑 앱',
-    'desktop-app': '데스크탑 앱',
+    'desktop': '프로그램',
+    'desktop-app': '프로그램',
+    'program': '프로그램',
+    'software': '프로그램',
     'saas': 'SaaS',
     'b2b': '회사 소프트웨어',
     'enterprise': '회사 소프트웨어',
@@ -382,7 +401,7 @@ export function Works() {
   // Priority tags for better UX - 소비자/클라이언트가 이해하기 쉬운 순서
   const priorityTags = [
     // 1순위: 결과물 유형 (비개발자도 이해)
-    '웹사이트', '모바일 어플', '데스크탑 앱', '쇼핑몰/자사몰', 
+    '모바일 어플', '홈페이지', '프로그램', '쇼핑몰/자사몰', 
     'SaaS', '회사 소프트웨어', '업무 자동화', '대시보드',
     // 2순위: 유명 모바일 프레임워크
     'Flutter', 'React Native',
@@ -890,7 +909,7 @@ export function Works() {
               ))
             ) : (
               // Fallback tags when no data loaded - 소비자 친화적 키워드
-              ['웹사이트', '모바일 어플', '데스크탑 앱', '쇼핑몰/자사몰', 'SaaS', '업무 자동화'].map((tag) => (
+              ['모바일 어플', '홈페이지', '프로그램', '쇼핑몰/자사몰', 'SaaS', '업무 자동화'].map((tag) => (
                 <button
                   key={tag}
                   onClick={() => setSearchQuery(searchQuery === tag ? '' : tag)}
@@ -1052,8 +1071,8 @@ export function Works() {
 
                       <div className="mt-4">
                         <p className="text-neutral-600 text-sm leading-relaxed mb-8">
-                          {activeProject.detailed_description || activeProject.description || 
-                            "An exploration of form and void, capturing the essence of minimal design through spatial awareness."}
+                          {parseSimpleMarkdown(activeProject.detailed_description || activeProject.description || 
+                            "An exploration of form and void, capturing the essence of minimal design through spatial awareness.")}
                         </p>
                         
                         {/* Action Buttons */}
@@ -1199,15 +1218,9 @@ const getCategoryIcon = (category: string) => {
 };
 
 // --- Category Color Helper ---
-const getCategoryColor = (category: string) => {
-  const lowerCategory = category.toLowerCase();
-  if (lowerCategory.includes('frontend') || lowerCategory.includes('ui')) return 'bg-blue-50 text-blue-600 border-blue-200';
-  if (lowerCategory.includes('backend') || lowerCategory.includes('server')) return 'bg-green-50 text-green-600 border-green-200';
-  if (lowerCategory.includes('database') || lowerCategory.includes('db')) return 'bg-orange-50 text-orange-600 border-orange-200';
-  if (lowerCategory.includes('mobile') || lowerCategory.includes('app')) return 'bg-purple-50 text-purple-600 border-purple-200';
-  if (lowerCategory.includes('framework') || lowerCategory.includes('library')) return 'bg-pink-50 text-pink-600 border-pink-200';
-  if (lowerCategory.includes('tool') || lowerCategory.includes('devops')) return 'bg-cyan-50 text-cyan-600 border-cyan-200';
-  return 'bg-neutral-50 text-neutral-600 border-neutral-200';
+const getCategoryColor = (_category: string) => {
+  // 초록색 포인트 컬러로 통일
+  return 'bg-emerald-50 text-emerald-600 border-emerald-200';
 };
 
 // --- Project Detail Page Component ---
@@ -1270,11 +1283,11 @@ function ProjectDetailPage({
   const getStatusBadge = () => {
     switch (project.status) {
       case 'in_progress':
-        return { label: '진행중', color: 'bg-green-100 text-green-700' };
+        return { label: '진행중', color: 'bg-emerald-100 text-emerald-700' };
       case 'archived':
         return { label: '보관됨', color: 'bg-neutral-100 text-neutral-600' };
       default:
-        return { label: '완료', color: 'bg-blue-100 text-blue-700' };
+        return { label: '완료', color: 'bg-neutral-100 text-neutral-700' };
     }
   };
 
@@ -1321,7 +1334,7 @@ function ProjectDetailPage({
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-neutral-100">
             <div className="flex items-start gap-4">
               {/* Project Icon */}
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-2xl font-bold shadow-lg shrink-0">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center text-white text-2xl font-bold shadow-lg shrink-0">
                 {project.title.charAt(0).toUpperCase()}
               </div>
               
@@ -1331,7 +1344,7 @@ function ProjectDetailPage({
                   <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${statusBadge.color}`}>
                     {statusBadge.label}
                   </span>
-                  <span className="px-2.5 py-1 text-xs font-medium bg-purple-100 text-purple-700 rounded-full">
+                  <span className="px-2.5 py-1 text-xs font-medium bg-emerald-100 text-emerald-700 rounded-full">
                     {project.category}
                   </span>
                   {project.language && (
@@ -1340,7 +1353,7 @@ function ProjectDetailPage({
                     </span>
                   )}
                   {project.client_name && (
-                    <span className="px-2 py-0.5 text-xs bg-orange-100 text-orange-600 rounded flex items-center gap-1">
+                    <span className="px-2 py-0.5 text-xs bg-neutral-100 text-neutral-600 rounded flex items-center gap-1">
                       <Building2 className="w-3 h-3" />
                       {project.client_name}
                     </span>
@@ -1365,7 +1378,7 @@ function ProjectDetailPage({
 
             {/* Description */}
             <p className="text-neutral-600 text-sm mt-4 leading-relaxed border-t border-neutral-100 pt-4">
-              {project.description || '프로젝트 설명이 없습니다.'}
+              {parseSimpleMarkdown(project.description || '프로젝트 설명이 없습니다.')}
             </p>
 
             {/* Action Buttons */}
@@ -1384,7 +1397,7 @@ function ProjectDetailPage({
                   href={project.demo_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-1 min-w-[120px] px-4 py-3 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                  className="flex-1 min-w-[120px] px-4 py-3 bg-emerald-600 text-white text-sm font-medium rounded-xl hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2"
                 >
                   <Play className="w-4 h-4" />
                   데모
@@ -1407,7 +1420,7 @@ function ProjectDetailPage({
           {/* ========== Code Statistics Section ========== */}
           {(project.lines_of_code || project.commit_count || Object.keys(project.languages).length > 0) && (
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-neutral-100">
-              <h2 className="text-xl font-bold text-blue-600 mb-6 flex items-center gap-2">
+              <h2 className="text-xl font-bold text-emerald-600 mb-6 flex items-center gap-2">
                 <FileCode className="w-5 h-5" />
                 코드 통계
               </h2>
@@ -1415,9 +1428,9 @@ function ProjectDetailPage({
               {/* Stats Grid */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 {project.lines_of_code && (
-                  <div className="bg-gradient-to-br from-blue-50 to-white rounded-xl p-4 border border-blue-100">
+                  <div className="bg-gradient-to-br from-neutral-50 to-white rounded-xl p-4 border border-neutral-200">
                     <div className="flex items-center gap-2 mb-2">
-                      <FileCode className="w-4 h-4 text-blue-500" />
+                      <FileCode className="w-4 h-4 text-neutral-500" />
                       <span className="text-xs text-neutral-500 font-medium">코드 라인</span>
                     </div>
                     <p className="text-2xl font-bold text-neutral-900">
@@ -1428,9 +1441,9 @@ function ProjectDetailPage({
                 )}
                 
                 {project.commit_count && (
-                  <div className="bg-gradient-to-br from-green-50 to-white rounded-xl p-4 border border-green-100">
+                  <div className="bg-gradient-to-br from-emerald-50 to-white rounded-xl p-4 border border-emerald-200">
                     <div className="flex items-center gap-2 mb-2">
-                      <GitCommit className="w-4 h-4 text-green-500" />
+                      <GitCommit className="w-4 h-4 text-emerald-500" />
                       <span className="text-xs text-neutral-500 font-medium">커밋 수</span>
                     </div>
                     <p className="text-2xl font-bold text-neutral-900">
@@ -1441,9 +1454,9 @@ function ProjectDetailPage({
                 )}
                 
                 {project.contributor_count > 0 && (
-                  <div className="bg-gradient-to-br from-purple-50 to-white rounded-xl p-4 border border-purple-100">
+                  <div className="bg-gradient-to-br from-neutral-50 to-white rounded-xl p-4 border border-neutral-200">
                     <div className="flex items-center gap-2 mb-2">
-                      <Users className="w-4 h-4 text-purple-500" />
+                      <Users className="w-4 h-4 text-neutral-500" />
                       <span className="text-xs text-neutral-500 font-medium">기여자</span>
                     </div>
                     <p className="text-2xl font-bold text-neutral-900">
@@ -1454,9 +1467,9 @@ function ProjectDetailPage({
                 )}
                 
                 {project.stargazers_count > 0 && (
-                  <div className="bg-gradient-to-br from-yellow-50 to-white rounded-xl p-4 border border-yellow-100">
+                  <div className="bg-gradient-to-br from-neutral-50 to-white rounded-xl p-4 border border-neutral-200">
                     <div className="flex items-center gap-2 mb-2">
-                      <Star className="w-4 h-4 text-yellow-500" />
+                      <Star className="w-4 h-4 text-emerald-500" />
                       <span className="text-xs text-neutral-500 font-medium">스타</span>
                     </div>
                     <p className="text-2xl font-bold text-neutral-900">
@@ -1576,7 +1589,7 @@ function ProjectDetailPage({
           {/* ========== 1. 기술 스택 (Tech Stack) ========== */}
           {project.technologies.length > 0 && (
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-neutral-100">
-              <h2 className="text-xl font-bold text-blue-600 mb-6 flex items-center gap-2">
+              <h2 className="text-xl font-bold text-emerald-600 mb-6 flex items-center gap-2">
                 기술 스택
               </h2>
               
@@ -1606,7 +1619,7 @@ function ProjectDetailPage({
           {/* ========== 2. 프로젝트 갤러리 (Screenshots) ========== */}
           {hasScreenshots && (
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-neutral-100">
-              <h2 className="text-xl font-bold text-blue-600 mb-6">프로젝트 갤러리</h2>
+              <h2 className="text-xl font-bold text-emerald-600 mb-6">프로젝트 갤러리</h2>
               
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {project.screenshots.map((screenshot, i) => {
@@ -1704,7 +1717,7 @@ function ProjectDetailPage({
           {/* ========== 3. 프로젝트 상세 설명 (Architecture) ========== */}
           {hasArchitectureInfo && (
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-neutral-100">
-              <h2 className="text-xl font-bold text-blue-600 mb-6">프로젝트 상세 설명</h2>
+              <h2 className="text-xl font-bold text-emerald-600 mb-6">프로젝트 상세 설명</h2>
               
               <div className="space-y-6">
                 {/* 아키텍처 */}
@@ -1756,7 +1769,7 @@ function ProjectDetailPage({
                     <ol className="space-y-1.5">
                       {project.auth_flow.map((step, i) => (
                         <li key={i} className="text-sm text-neutral-600 flex items-start gap-2">
-                          <span className="font-semibold text-blue-600 shrink-0">{i + 1}.</span>
+                          <span className="font-semibold text-emerald-600 shrink-0">{i + 1}.</span>
                           <span>{step}</span>
                         </li>
                       ))}
@@ -1786,7 +1799,7 @@ function ProjectDetailPage({
           {/* ========== 4. 주요 기능 (Features) ========== */}
           {project.features.length > 0 && (
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-neutral-100">
-              <h2 className="text-xl font-bold text-blue-600 mb-6">주요 기능</h2>
+              <h2 className="text-xl font-bold text-emerald-600 mb-6">주요 기능</h2>
               
               <div className="space-y-4">
                 {project.features.map((feature, i) => (
@@ -1796,7 +1809,7 @@ function ProjectDetailPage({
                   >
                     <h3 className="font-bold text-neutral-900 text-base mb-1">{feature.title}</h3>
                     {feature.description && (
-                      <p className="text-blue-600 text-sm font-medium mb-2">{feature.description}</p>
+                      <p className="text-emerald-600 text-sm font-medium mb-2">{feature.description}</p>
                     )}
                     {feature.sub_description && (
                       <p className="text-neutral-500 text-sm leading-relaxed">{feature.sub_description}</p>
@@ -1810,7 +1823,7 @@ function ProjectDetailPage({
           {/* ========== 5. 기술적 도전 과제 (Technical Challenges) ========== */}
           {project.technical_challenges.length > 0 && (
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-neutral-100">
-              <h2 className="text-xl font-bold text-blue-600 mb-2">주요 도전과제</h2>
+              <h2 className="text-xl font-bold text-emerald-600 mb-2">주요 도전과제</h2>
               <h3 className="text-lg font-semibold text-neutral-800 mb-6">기술적 도전 과제</h3>
               
               <div className="space-y-6">
@@ -1824,7 +1837,7 @@ function ProjectDetailPage({
                       {challenge.challenge}
                     </p>
                     <p className="text-sm text-neutral-600">
-                      <span className="font-semibold text-blue-600">해결:</span>{' '}
+                      <span className="font-semibold text-emerald-600">해결:</span>{' '}
                       {challenge.solution}
                     </p>
                   </div>
@@ -1836,13 +1849,13 @@ function ProjectDetailPage({
           {/* ========== 6. 주요 성과 (Key Achievements) ========== */}
           {project.key_achievements.length > 0 && (
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-neutral-100">
-              <h2 className="text-xl font-bold text-blue-600 mb-2">주요 성과</h2>
+              <h2 className="text-xl font-bold text-emerald-600 mb-2">주요 성과</h2>
               <h3 className="text-lg font-semibold text-neutral-800 mb-6">주요 성과</h3>
               
               <ol className="space-y-3">
                 {project.key_achievements.map((achievement, i) => (
                   <li key={i} className="text-sm text-neutral-700 flex items-start gap-3">
-                    <span className="font-bold text-blue-600 shrink-0">{i + 1}.</span>
+                    <span className="font-bold text-emerald-600 shrink-0">{i + 1}.</span>
                     <span>{achievement}</span>
                   </li>
                 ))}
@@ -1853,7 +1866,7 @@ function ProjectDetailPage({
           {/* ========== 7. 코드 스니펫 (Code Snippets) ========== */}
           {project.code_snippets.length > 0 && (
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-neutral-100">
-              <h2 className="text-xl font-bold text-blue-600 mb-6">코드 스니펫</h2>
+              <h2 className="text-xl font-bold text-emerald-600 mb-6">코드 스니펫</h2>
               
               <div className="space-y-6">
                 {project.code_snippets.map((snippet, i) => (
@@ -1862,7 +1875,7 @@ function ProjectDetailPage({
                     <div className="bg-[#1e1e1e] px-4 py-3">
                       <h4 className="font-bold text-white text-base">{snippet.title}</h4>
                       <p className="text-neutral-400 text-sm mt-1">{snippet.description}</p>
-                      <p className="text-blue-400 text-xs mt-1 font-mono">{snippet.file_path}</p>
+                      <p className="text-emerald-400 text-xs mt-1 font-mono">{snippet.file_path}</p>
                     </div>
                     {/* Code Block */}
                     <pre className="bg-[#1e1e1e] px-4 py-4 overflow-x-auto">
@@ -1925,7 +1938,7 @@ function ProjectDetailPage({
                     </div>
                     {role.contribution_percentage && (
                       <div className="text-right shrink-0">
-                        <span className="text-2xl font-bold text-blue-600">{role.contribution_percentage}%</span>
+                        <span className="text-2xl font-bold text-emerald-600">{role.contribution_percentage}%</span>
                         <p className="text-xs text-neutral-400">기여도</p>
                       </div>
                     )}

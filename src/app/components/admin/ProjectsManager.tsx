@@ -1,8 +1,8 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import useSWR from 'swr';
 import { 
   Upload, Trash2, Loader2, Image as ImageIcon, 
-  ExternalLink, Check
+  ExternalLink, Star, X, Plus, ChevronDown, ChevronUp
 } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
@@ -18,6 +18,12 @@ const fetcher = async (url: string) => {
   return res.json();
 };
 
+interface ScreenshotItem {
+  url: string;
+  caption?: string;
+  order: number;
+}
+
 interface Repository {
   id: number;
   name: string;
@@ -25,6 +31,7 @@ interface Repository {
   description: string | null;
   html_url: string;
   cover_image: string | null;
+  screenshots: ScreenshotItem[];
   has_portfolio_meta: boolean;
 }
 
@@ -57,20 +64,25 @@ export default function ProjectsManager() {
   
   const repositories = data?.repositories || [];
 
+  // 확장된 프로젝트 ID
+  const [expandedId, setExpandedId] = useState<number | null>(null);
+  
+  // 업로드 상태
   const [uploadingFor, setUploadingFor] = useState<number | null>(null);
   const [savingFor, setSavingFor] = useState<number | null>(null);
-  const [successFor, setSuccessFor] = useState<number | null>(null);
 
   const fileInputRefs = useRef<Map<number, HTMLInputElement>>(new Map());
 
-  // 대표이미지 업로드 처리
-  const handleCoverImageUpload = async (projectId: number, file: File) => {
+  // 다중 파일 업로드 처리
+  const handleFilesUpload = async (projectId: number, files: FileList) => {
     const token = localStorage.getItem('admin_token');
     setUploadingFor(projectId);
 
     try {
       const formData = new FormData();
-      formData.append('files', file);
+      Array.from(files).forEach(file => {
+        formData.append('files', file);
+      });
       formData.append('project_id', projectId.toString());
 
       const uploadRes = await fetch(`${API_BASE}/api/upload/screenshots`, {
@@ -84,26 +96,36 @@ export default function ProjectsManager() {
       if (!uploadRes.ok) throw new Error('Upload failed');
       
       const result = await uploadRes.json();
-      const imageKey = result.keys?.[0] || result.urls?.[0];
+      const uploadedUrls = result.urls || [];
       
-      if (!imageKey) throw new Error('No image key returned');
+      if (uploadedUrls.length === 0) throw new Error('No images uploaded');
 
-      // 대표이미지 업데이트
+      // 기존 스크린샷 가져오기
+      const project = repositories.find(r => r.id === projectId);
+      const existingScreenshots = project?.screenshots || [];
+      
+      // 새 스크린샷 추가
+      const newScreenshots: ScreenshotItem[] = [
+        ...existingScreenshots,
+        ...uploadedUrls.map((url: string, idx: number) => ({
+          url,
+          caption: '',
+          order: existingScreenshots.length + idx
+        }))
+      ];
+
+      // 스크린샷 업데이트
       setSavingFor(projectId);
-      const updateRes = await fetch(`${API_BASE}/api/repos/${projectId}/cover-image`, {
+      const updateRes = await fetch(`${API_BASE}/api/repos/${projectId}/screenshots`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ cover_image: imageKey })
+        body: JSON.stringify({ screenshots: newScreenshots })
       });
 
       if (!updateRes.ok) throw new Error('Update failed');
-      
-      // 성공 표시
-      setSuccessFor(projectId);
-      setTimeout(() => setSuccessFor(null), 2000);
       
       // 데이터 새로고침
       mutate();
@@ -116,8 +138,8 @@ export default function ProjectsManager() {
     }
   };
 
-  // 대표이미지 삭제
-  const handleRemoveCoverImage = async (projectId: number) => {
+  // 대표이미지 설정
+  const handleSetCoverImage = async (projectId: number, imageUrl: string) => {
     const token = localStorage.getItem('admin_token');
     setSavingFor(projectId);
 
@@ -128,10 +150,55 @@ export default function ProjectsManager() {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ cover_image: null })
+        body: JSON.stringify({ cover_image: imageUrl })
       });
 
-      if (!res.ok) throw new Error('Delete failed');
+      if (!res.ok) throw new Error('Update failed');
+      mutate();
+    } catch (error) {
+      console.error('Set cover image failed:', error);
+      alert('대표이미지 설정에 실패했습니다.');
+    } finally {
+      setSavingFor(null);
+    }
+  };
+
+  // 스크린샷 삭제
+  const handleDeleteScreenshot = async (projectId: number, imageUrl: string) => {
+    const token = localStorage.getItem('admin_token');
+    setSavingFor(projectId);
+
+    try {
+      const project = repositories.find(r => r.id === projectId);
+      if (!project) return;
+
+      // 스크린샷 목록에서 제거
+      const updatedScreenshots = project.screenshots
+        .filter(s => s.url !== imageUrl)
+        .map((s, idx) => ({ ...s, order: idx }));
+
+      const updateRes = await fetch(`${API_BASE}/api/repos/${projectId}/screenshots`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ screenshots: updatedScreenshots })
+      });
+
+      if (!updateRes.ok) throw new Error('Update failed');
+
+      // 삭제한 이미지가 대표이미지였다면 대표이미지도 제거
+      if (project.cover_image === imageUrl) {
+        await fetch(`${API_BASE}/api/repos/${projectId}/cover-image`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ cover_image: null })
+        });
+      }
       
       mutate();
     } catch (error) {
@@ -141,6 +208,22 @@ export default function ProjectsManager() {
       setSavingFor(null);
     }
   };
+
+  // 드래그앤드롭 핸들러
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleDrop = useCallback((projectId: number) => (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      handleFilesUpload(projectId, files);
+    }
+  }, [repositories, mutate]);
 
   if (isLoading) {
     return (
@@ -156,60 +239,41 @@ export default function ProjectsManager() {
       <div>
         <h2 className="text-2xl font-bold text-gray-900">프로젝트 관리</h2>
         <p className="text-sm text-gray-500 mt-1">
-          각 프로젝트의 대표이미지를 설정합니다. 포트폴리오 목록에 표시됩니다.
+          각 프로젝트의 스크린샷을 업로드하고 대표이미지를 설정합니다.
         </p>
       </div>
 
       {/* 프로젝트 목록 */}
-      <div className="grid gap-4">
+      <div className="space-y-3">
         {repositories.map((project) => {
           const coverImageUrl = getImageUrl(project.cover_image);
+          const isExpanded = expandedId === project.id;
           const isUploading = uploadingFor === project.id;
           const isSaving = savingFor === project.id;
-          const isSuccess = successFor === project.id;
           const isProcessing = isUploading || isSaving;
+          const screenshots = project.screenshots || [];
 
           return (
             <div 
               key={project.id} 
               className="bg-white rounded-xl border shadow-sm overflow-hidden"
             >
-              <div className="flex items-center gap-4 p-4">
+              {/* 프로젝트 헤더 - 클릭하면 확장 */}
+              <button
+                onClick={() => setExpandedId(isExpanded ? null : project.id)}
+                className="w-full flex items-center gap-4 p-4 hover:bg-gray-50 transition-colors text-left"
+              >
                 {/* 대표이미지 미리보기 */}
-                <div className="relative w-24 h-24 bg-gray-100 rounded-lg overflow-hidden shrink-0 group">
+                <div className="relative w-16 h-16 bg-gray-100 rounded-lg overflow-hidden shrink-0">
                   {coverImageUrl ? (
-                    <>
-                      <img
-                        src={coverImageUrl}
-                        alt={project.title || project.name}
-                        className="w-full h-full object-cover"
-                      />
-                      {/* 삭제 버튼 (호버시 표시) */}
-                      <button
-                        onClick={() => handleRemoveCoverImage(project.id)}
-                        disabled={isProcessing}
-                        className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-                      >
-                        <Trash2 className="w-5 h-5 text-white" />
-                      </button>
-                    </>
+                    <img
+                      src={coverImageUrl}
+                      alt={project.title || project.name}
+                      className="w-full h-full object-cover"
+                    />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-gray-300">
-                      <ImageIcon className="w-8 h-8" />
-                    </div>
-                  )}
-                  
-                  {/* 로딩 오버레이 */}
-                  {isProcessing && (
-                    <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
-                      <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
-                    </div>
-                  )}
-                  
-                  {/* 성공 표시 */}
-                  {isSuccess && (
-                    <div className="absolute inset-0 bg-green-500/80 flex items-center justify-center">
-                      <Check className="w-6 h-6 text-white" />
+                      <ImageIcon className="w-6 h-6" />
                     </div>
                   )}
                 </div>
@@ -225,50 +289,142 @@ export default function ProjectsManager() {
                     </p>
                   )}
                   <p className="text-xs text-gray-400 mt-1">
-                    {project.cover_image ? '대표이미지 설정됨' : '대표이미지 없음'}
+                    스크린샷 {screenshots.length}개
+                    {project.cover_image && ' · 대표이미지 설정됨'}
                   </p>
                 </div>
 
-                {/* 액션 버튼 */}
-                <div className="flex items-center gap-2 shrink-0">
-                  <input
-                    ref={(el) => {
-                      if (el) fileInputRefs.current.set(project.id, el);
-                    }}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        handleCoverImageUpload(project.id, file);
-                        e.target.value = '';
-                      }
-                    }}
-                  />
-                  <button
-                    onClick={() => fileInputRefs.current.get(project.id)?.click()}
-                    disabled={isProcessing}
-                    className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
-                  >
-                    {isProcessing ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Upload className="w-4 h-4" />
-                    )}
-                    {project.cover_image ? '변경' : '업로드'}
-                  </button>
-                  
-                  <a
-                    href={project.html_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                  </a>
+                {/* 확장 아이콘 */}
+                <div className="shrink-0 text-gray-400">
+                  {isExpanded ? (
+                    <ChevronUp className="w-5 h-5" />
+                  ) : (
+                    <ChevronDown className="w-5 h-5" />
+                  )}
                 </div>
-              </div>
+
+                {/* GitHub 링크 */}
+                <a
+                  href={project.html_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors shrink-0"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                </a>
+              </button>
+
+              {/* 확장된 콘텐츠 - 스크린샷 관리 */}
+              {isExpanded && (
+                <div className="border-t bg-gray-50 p-4">
+                  {/* 로딩 오버레이 */}
+                  {isProcessing && (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+                      <span className="ml-2 text-sm text-gray-500">
+                        {isUploading ? '업로드 중...' : '저장 중...'}
+                      </span>
+                    </div>
+                  )}
+
+                  {!isProcessing && (
+                    <>
+                      {/* 업로드 영역 */}
+                      <div
+                        onDragOver={handleDragOver}
+                        onDrop={handleDrop(project.id)}
+                        className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 hover:bg-blue-50/50 transition-colors cursor-pointer mb-4"
+                        onClick={() => fileInputRefs.current.get(project.id)?.click()}
+                      >
+                        <input
+                          ref={(el) => {
+                            if (el) fileInputRefs.current.set(project.id, el);
+                          }}
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          className="hidden"
+                          onChange={(e) => {
+                            const files = e.target.files;
+                            if (files && files.length > 0) {
+                              handleFilesUpload(project.id, files);
+                              e.target.value = '';
+                            }
+                          }}
+                        />
+                        <Plus className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                        <p className="text-sm text-gray-600">
+                          클릭하거나 이미지를 드래그하여 업로드
+                        </p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          여러 이미지를 한번에 선택할 수 있습니다
+                        </p>
+                      </div>
+
+                      {/* 스크린샷 그리드 */}
+                      {screenshots.length > 0 ? (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                          {screenshots.map((screenshot, idx) => {
+                            const imgUrl = getImageUrl(screenshot.url);
+                            const isCover = project.cover_image === screenshot.url;
+
+                            return (
+                              <div
+                                key={idx}
+                                className={`relative aspect-video bg-gray-200 rounded-lg overflow-hidden group ${
+                                  isCover ? 'ring-2 ring-yellow-400 ring-offset-2' : ''
+                                }`}
+                              >
+                                <img
+                                  src={imgUrl || ''}
+                                  alt={screenshot.caption || `Screenshot ${idx + 1}`}
+                                  className="w-full h-full object-cover"
+                                />
+
+                                {/* 대표이미지 배지 */}
+                                {isCover && (
+                                  <div className="absolute top-1 left-1 bg-yellow-400 text-yellow-900 text-[10px] font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                                    <Star className="w-3 h-3" fill="currentColor" />
+                                    대표
+                                  </div>
+                                )}
+
+                                {/* 호버 오버레이 */}
+                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                  {/* 대표이미지 설정 버튼 */}
+                                  {!isCover && (
+                                    <button
+                                      onClick={() => handleSetCoverImage(project.id, screenshot.url)}
+                                      className="p-2 bg-yellow-400 text-yellow-900 rounded-lg hover:bg-yellow-300 transition-colors"
+                                      title="대표이미지로 설정"
+                                    >
+                                      <Star className="w-4 h-4" />
+                                    </button>
+                                  )}
+
+                                  {/* 삭제 버튼 */}
+                                  <button
+                                    onClick={() => handleDeleteScreenshot(project.id, screenshot.url)}
+                                    className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                                    title="삭제"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <p className="text-center text-gray-400 text-sm py-4">
+                          아직 업로드된 스크린샷이 없습니다
+                        </p>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           );
         })}

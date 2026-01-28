@@ -1,7 +1,5 @@
 """Project requests router - handles form submissions."""
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+import httpx
 from datetime import datetime
 from typing import Optional
 
@@ -53,87 +51,50 @@ OUTPUT_TYPE_LABELS = {
 }
 
 
-def send_email_notification(request_data: ProjectRequestCreate, request_id: int) -> bool:
-    """Send email notification for new project request."""
+def send_discord_notification(request_data: ProjectRequestCreate, request_id: int) -> bool:
+    """Send Discord webhook notification for new project request."""
     settings = get_settings()
     
-    # Skip if email settings not configured
-    if not settings.smtp_host or not settings.smtp_user:
-        print("Email settings not configured, skipping notification")
+    # Skip if webhook not configured
+    if not settings.discord_webhook_url:
+        print("Discord webhook not configured, skipping notification")
         return False
     
     try:
-        # Build email content
+        # Build output label
         output_label = OUTPUT_TYPE_LABELS.get(request_data.output_type, request_data.output_type)
         if request_data.output_type == "other" and request_data.output_other:
             output_label = f"기타: {request_data.output_other}"
         
-        html_content = f"""
-        <html>
-        <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #333;">🚀 새로운 프로젝트 요청</h2>
-            <p style="color: #666;">새로운 프로젝트 요청이 접수되었습니다.</p>
-            
-            <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
-                <tr style="background: #f5f5f5;">
-                    <td style="padding: 12px; border: 1px solid #ddd; font-weight: bold; width: 30%;">요청 번호</td>
-                    <td style="padding: 12px; border: 1px solid #ddd;">#{request_id}</td>
-                </tr>
-                <tr>
-                    <td style="padding: 12px; border: 1px solid #ddd; font-weight: bold;">담당자</td>
-                    <td style="padding: 12px; border: 1px solid #ddd;">{request_data.contact_name or '-'}</td>
-                </tr>
-                <tr style="background: #f5f5f5;">
-                    <td style="padding: 12px; border: 1px solid #ddd; font-weight: bold;">이메일</td>
-                    <td style="padding: 12px; border: 1px solid #ddd;">{request_data.contact_email or '-'}</td>
-                </tr>
-                <tr>
-                    <td style="padding: 12px; border: 1px solid #ddd; font-weight: bold;">전화번호</td>
-                    <td style="padding: 12px; border: 1px solid #ddd;">{request_data.contact_phone or '-'}</td>
-                </tr>
-                <tr style="background: #f5f5f5;">
-                    <td style="padding: 12px; border: 1px solid #ddd; font-weight: bold;">예산</td>
-                    <td style="padding: 12px; border: 1px solid #ddd;">{request_data.budget or '-'}</td>
-                </tr>
-                <tr>
-                    <td style="padding: 12px; border: 1px solid #ddd; font-weight: bold;">원하는 아웃풋</td>
-                    <td style="padding: 12px; border: 1px solid #ddd;">{output_label}</td>
-                </tr>
-                <tr style="background: #f5f5f5;">
-                    <td style="padding: 12px; border: 1px solid #ddd; font-weight: bold;">원하는 기능</td>
-                    <td style="padding: 12px; border: 1px solid #ddd;">{request_data.features or '-'}</td>
-                </tr>
-                <tr>
-                    <td style="padding: 12px; border: 1px solid #ddd; font-weight: bold;">아이디어 설명</td>
-                    <td style="padding: 12px; border: 1px solid #ddd;">{request_data.idea or '-'}</td>
-                </tr>
-            </table>
-            
-            <p style="color: #999; font-size: 12px; margin-top: 30px;">
-                이 이메일은 포트폴리오 사이트에서 자동으로 발송되었습니다.
-            </p>
-        </body>
-        </html>
-        """
+        # Discord embed message
+        embed = {
+            "title": f"🚀 새로운 프로젝트 요청 #{request_id}",
+            "color": 5814783,  # Blue color
+            "fields": [
+                {"name": "📋 원하는 아웃풋", "value": output_label, "inline": True},
+                {"name": "💰 예산", "value": request_data.budget or "-", "inline": True},
+                {"name": "👤 담당자", "value": request_data.contact_name or "-", "inline": True},
+                {"name": "📧 이메일", "value": request_data.contact_email or "-", "inline": True},
+                {"name": "📱 전화번호", "value": request_data.contact_phone or "-", "inline": True},
+                {"name": "⚙️ 원하는 기능", "value": request_data.features or "-", "inline": False},
+                {"name": "💡 아이디어 설명", "value": (request_data.idea[:500] + "...") if request_data.idea and len(request_data.idea) > 500 else (request_data.idea or "-"), "inline": False},
+            ],
+            "footer": {"text": "포트폴리오 사이트"},
+            "timestamp": datetime.utcnow().isoformat(),
+        }
         
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = f"[포트폴리오] 새 프로젝트 요청 #{request_id}"
-        msg["From"] = settings.smtp_user
-        msg["To"] = settings.notification_email
+        payload = {"embeds": [embed]}
         
-        msg.attach(MIMEText(html_content, "html"))
+        # Send to Discord
+        with httpx.Client() as client:
+            response = client.post(settings.discord_webhook_url, json=payload)
+            response.raise_for_status()
         
-        # Send email
-        with smtplib.SMTP(settings.smtp_host, settings.smtp_port) as server:
-            server.starttls()
-            server.login(settings.smtp_user, settings.smtp_password)
-            server.send_message(msg)
-        
-        print(f"Email notification sent for request #{request_id}")
+        print(f"Discord notification sent for request #{request_id}")
         return True
         
     except Exception as e:
-        print(f"Failed to send email notification: {e}")
+        print(f"Failed to send Discord notification: {e}")
         return False
 
 
@@ -163,8 +124,8 @@ async def create_project_request(request: ProjectRequestCreate):
         if not row:
             raise HTTPException(status_code=500, detail="Failed to create project request")
         
-        # Send email notification (non-blocking, don't fail if email fails)
-        send_email_notification(request, row["id"])
+        # Send Discord notification (non-blocking, don't fail if notification fails)
+        send_discord_notification(request, row["id"])
         
         return ProjectRequestResponse(**dict(row))
 

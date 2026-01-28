@@ -27,12 +27,8 @@ class Settings(BaseSettings):
     bucket_secret_access_key: str = ""
     bucket_name: str = ""
     
-    # Email (SMTP)
-    smtp_host: str = ""
-    smtp_port: int = 587
-    smtp_user: str = ""
-    smtp_password: str = ""
-    notification_email: str = "bluejin1130@gmail.com"
+    # Discord Webhook (for notifications)
+    discord_webhook_url: str = ""
     
     class Config:
         env_file = ".env"

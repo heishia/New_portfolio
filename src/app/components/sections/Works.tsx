@@ -346,23 +346,14 @@ export function Works() {
 
   // Fetch repositories from API
   const fetchRepositories = useCallback(async () => {
-    // #region agent log
-    fetch('http://127.0.0.1:7250/ingest/64b02a6f-ec38-48d4-b428-ee5852d6f28d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Works.tsx:fetchRepositories',message:'API call start',data:{API_BASE_URL,fullUrl:`${API_BASE_URL}/api/repos`},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H2'})}).catch(()=>{});
-    // #endregion
     try {
       const response = await fetch(`${API_BASE_URL}/api/repos`);
-      // #region agent log
-      fetch('http://127.0.0.1:7250/ingest/64b02a6f-ec38-48d4-b428-ee5852d6f28d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Works.tsx:fetchRepositories',message:'Response received',data:{status:response.status,ok:response.ok},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H3,H4'})}).catch(()=>{});
-      // #endregion
       if (!response.ok) throw new Error('Failed to fetch repositories');
       
       const data = await response.json();
       setRepositories(data.repositories || []);
       setError(null);
     } catch (err) {
-      // #region agent log
-      fetch('http://127.0.0.1:7250/ingest/64b02a6f-ec38-48d4-b428-ee5852d6f28d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Works.tsx:fetchRepositories',message:'Fetch error',data:{error:String(err)},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1,H5'})}).catch(()=>{});
-      // #endregion
       console.error('Failed to fetch repositories:', err);
       setError('Failed to load projects');
     } finally {

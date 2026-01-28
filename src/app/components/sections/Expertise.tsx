@@ -1,37 +1,150 @@
 import { motion } from 'motion/react';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
+
+interface ServiceCardProps {
+  service: {
+    title: string;
+    description: string;
+    mediaType: 'video' | 'image' | 'mockup';
+    videoSrc?: string;
+    imageSrc?: string;
+    mockupImages?: string[];  // 여러 이미지 슬라이드용
+  };
+  index: number;
+}
+
+function ServiceCard({ service, index }: ServiceCardProps) {
+  const [isHovered, setIsHovered] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  // 목업 이미지 슬라이드 자동 재생
+  useEffect(() => {
+    if (service.mediaType === 'mockup' && service.mockupImages && service.mockupImages.length > 1) {
+      const interval = setInterval(() => {
+        setCurrentImageIndex((prev) => (prev + 1) % service.mockupImages!.length);
+      }, 2500); // 2.5초마다 전환
+      return () => clearInterval(interval);
+    }
+  }, [service.mediaType, service.mockupImages]);
+
+  const handleMouseEnter = () => {
+    setIsHovered(true);
+    if (videoRef.current) {
+      videoRef.current.play();
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+    if (videoRef.current) {
+      videoRef.current.pause();
+      videoRef.current.currentTime = 0;
+    }
+  };
+
+  return (
+    <div
+      className="group cursor-pointer"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      {/* Image/Video Frame */}
+      <div className="w-full aspect-[4/3] bg-[#1a1a1a] mb-6 overflow-hidden relative">
+        {service.mediaType === 'video' && service.videoSrc ? (
+          <video
+            ref={videoRef}
+            src={service.videoSrc}
+            loop
+            muted
+            playsInline
+            className="absolute inset-0 w-full h-full object-cover transition-all duration-500"
+            style={{
+              filter: isHovered ? 'grayscale(0%)' : 'grayscale(100%)',
+              opacity: isHovered ? 1 : 0.7,
+            }}
+          />
+        ) : service.mediaType === 'image' && service.imageSrc ? (
+          <img
+            src={service.imageSrc}
+            alt={service.title}
+            className="absolute inset-0 w-full h-full object-cover transition-all duration-500"
+            style={{
+              filter: isHovered ? 'grayscale(0%)' : 'grayscale(100%)',
+              opacity: isHovered ? 1 : 0.7,
+            }}
+          />
+        ) : service.mediaType === 'mockup' && service.mockupImages && service.mockupImages.length > 0 ? (
+          /* Image Slideshow - Top portion of mobile screenshots */
+          <>
+            {service.mockupImages.map((imgSrc, imgIndex) => (
+              <img
+                key={imgSrc}
+                src={imgSrc}
+                alt={`${service.title} ${imgIndex + 1}`}
+                className="absolute inset-0 w-full h-full object-cover object-top transition-all duration-700"
+                style={{
+                  opacity: imgIndex === currentImageIndex ? 1 : 0,
+                  filter: isHovered ? 'grayscale(0%)' : 'grayscale(100%)',
+                }}
+              />
+            ))}
+          </>
+        ) : (
+          <>
+            <div className="absolute inset-0 bg-gradient-to-br from-gray-800 via-gray-900 to-black" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-white/10 text-6xl md:text-7xl font-bold" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+                {String(index + 1).padStart(2, '0')}
+              </span>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Content */}
+      <div className="border-l-2 border-black pl-6 transition-colors group-hover:border-gray-400">
+        <h4 className="text-xl md:text-2xl 2xl:text-2xl font-bold mb-3" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+          {service.title}
+        </h4>
+        <p className="text-sm md:text-base 2xl:text-base leading-relaxed text-gray-600 group-hover:text-gray-900 transition-colors" style={{ fontFamily: "'Pretendard', sans-serif" }}>
+          {service.description}
+        </p>
+      </div>
+    </div>
+  );
+}
 
 const services = [
   {
     title: '모바일 앱 개발',
     description: 'iOS와 Android를 아우르는 네이티브 및 크로스플랫폼 모바일 애플리케이션을 제작합니다.',
-    mediaType: 'image'
+    mediaType: 'mockup' as const,
+    mockupImages: ['/images/3.png', '/images/9.png', '/images/11.png']
   },
   {
     title: '반응형 홈페이지',
     description: '모든 디바이스에서 완벽하게 작동하는 반응형 웹사이트를 제작합니다.',
-    mediaType: 'image'
+    mediaType: 'video' as const,
+    videoSrc: '/videos/사이트.mp4'
   },
   {
     title: '쇼핑몰 (이커머스)',
     description: '온라인 쇼핑몰 구축부터 결제 시스템 연동까지 완벽한 이커머스 솔루션을 제공합니다.',
-    mediaType: 'image'
+    mediaType: 'image' as const,
+    imageSrc: '/images/lune.png'
   },
   {
     title: '자동화 프로그램',
     description: '반복 작업을 자동화하여 업무 효율성을 극대화하는 맞춤형 솔루션을 개발합니다.',
-    mediaType: 'video',
+    mediaType: 'video' as const,
     videoSrc: '/videos/자동화프로그램.mp4'
   },
   {
     title: '플랫폼 개발',
     description: 'SaaS, 관리 시스템, 대시보드 등 비즈니스에 맞는 플랫폼을 구축합니다.',
-    mediaType: 'image'
-  },
-  {
-    title: '사내 프로그램',
-    description: '기업 맞춤형 내부 시스템과 관리 도구를 설계하고 구축합니다.',
-    mediaType: 'image'
+    mediaType: 'video' as const,
+    videoSrc: '/videos/플랫폼.mp4'
   }
 ];
 
@@ -103,56 +216,7 @@ export function Expertise() {
         <div className="mb-20 md:mb-32">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-12">
             {services.map((service, index) => (
-              <motion.div
-                key={service.title}
-                className="group cursor-pointer"
-                initial={{ opacity: 0, y: 50 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.8, delay: index * 0.1 }}
-                whileHover={{ y: -8 }}
-              >
-                {/* Image/Video Frame */}
-                <motion.div
-                  className="w-full aspect-[4/3] bg-[#1a1a1a] mb-6 overflow-hidden relative"
-                  whileHover={{ scale: 1.02 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  {service.mediaType === 'video' && service.videoSrc ? (
-                    <video
-                      src={service.videoSrc}
-                      autoPlay
-                      loop
-                      muted
-                      playsInline
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
-                  ) : (
-                    <>
-                      <motion.div
-                        className="absolute inset-0 bg-gradient-to-br from-gray-800 via-gray-900 to-black"
-                        initial={{ opacity: 0.8 }}
-                        whileHover={{ opacity: 1 }}
-                      />
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-white/10 text-6xl md:text-7xl font-bold" style={{ fontFamily: "'Montserrat', sans-serif" }}>
-                          {String(index + 1).padStart(2, '0')}
-                        </span>
-                      </div>
-                    </>
-                  )}
-                </motion.div>
-
-                {/* Content */}
-                <div className="border-l-2 border-black pl-6 transition-colors group-hover:border-gray-400">
-                  <h4 className="text-xl md:text-2xl 2xl:text-2xl font-bold mb-3" style={{ fontFamily: "'Montserrat', sans-serif" }}>
-                    {service.title}
-                  </h4>
-                  <p className="text-sm md:text-base 2xl:text-base leading-relaxed text-gray-600 group-hover:text-gray-900 transition-colors" style={{ fontFamily: "'Pretendard', sans-serif" }}>
-                    {service.description}
-                  </p>
-                </div>
-              </motion.div>
+              <ServiceCard key={service.title} service={service} index={index} />
             ))}
           </div>
         </div>

@@ -27,6 +27,13 @@ class Settings(BaseSettings):
     bucket_secret_access_key: str = ""
     bucket_name: str = ""
     
+    # Email (SMTP)
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    notification_email: str = "bluejin1130@gmail.com"
+    
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

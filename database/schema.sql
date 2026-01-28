@@ -200,3 +200,31 @@ INSERT INTO site_settings (key, value, description) VALUES
   ('sns_linkedin', '', 'LinkedIn 프로필 URL'),
   ('contact_email', 'bluejin1130@gmail.com', '연락처 이메일')
 ON CONFLICT (key) DO NOTHING;
+
+
+-- ============================================
+-- Project Requests Table
+-- ============================================
+DROP TABLE IF EXISTS project_requests CASCADE;
+
+CREATE TABLE project_requests (
+  id SERIAL PRIMARY KEY,
+  output_type VARCHAR(50) NOT NULL,
+  output_other TEXT,
+  features TEXT,
+  idea TEXT,
+  -- Contact information
+  contact_name VARCHAR(100),
+  contact_email VARCHAR(255),
+  contact_phone VARCHAR(50),
+  budget VARCHAR(100),
+  -- Status tracking
+  status VARCHAR(20) DEFAULT 'pending',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_pr_status ON project_requests(status);
+CREATE INDEX idx_pr_created ON project_requests(created_at);
+
+COMMENT ON TABLE project_requests IS 'Project request submissions from Start a Project form';

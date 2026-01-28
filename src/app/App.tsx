@@ -5,7 +5,7 @@ import { Header } from '@/app/components/layout/Header';
 import { FloatingButtons } from '@/app/components/layout/FloatingButtons';
 import { Intro } from '@/app/components/Intro';
 import { Hero } from '@/app/components/sections/Hero';
-import { Works } from '@/app/components/sections/Works';
+import { Portfolio } from '@/app/components/sections/Portfolio';
 import { About } from '@/app/components/sections/About';
 import { Expertise } from '@/app/components/sections/Expertise';
 import { Contact } from '@/app/components/sections/Contact';
@@ -33,7 +33,7 @@ export default function App() {
               transition={{ duration: 1 }}
             >
               <Hero />
-              <Works />
+              <Portfolio />
               <About />
               <Expertise />
               <Contact />

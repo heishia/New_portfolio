@@ -1,7 +1,10 @@
 import { motion } from 'motion/react';
-import { ArrowUpRight, Github, Instagram, Linkedin, Twitter } from 'lucide-react';
+import { ArrowUpRight, Github, Instagram, Linkedin } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export function Contact() {
+  const navigate = useNavigate();
+
   return (
     <section
       id="contact"
@@ -20,6 +23,7 @@ export function Contact() {
         </motion.div>
 
         <motion.button
+          onClick={() => navigate('/start-project')}
           className="mt-12 md:mt-16 px-6 md:px-8 2xl:px-8 py-3 md:py-4 2xl:py-4 border border-black rounded-full uppercase text-xs md:text-sm 2xl:text-sm tracking-widest hover:bg-black hover:text-white transition-colors duration-300"
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}

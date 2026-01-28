@@ -321,7 +321,7 @@ const transformReposToProjects = (repos: Repository[]): ProjectDisplay[] => {
   return displayItems;
 };
 
-export function Works() {
+export function Portfolio() {
   // API Data State
   const [repositories, setRepositories] = useState<Repository[]>([]);
   const [loading, setLoading] = useState(true);
@@ -355,6 +355,14 @@ export function Works() {
 
   // Computed projects
   const projects = transformReposToProjects(repositories);
+  
+  // Reset rotation when search query changes to center results
+  useEffect(() => {
+    if (searchQuery.trim()) {
+      // Center the filtered results by resetting rotation
+      rotation.set(0);
+    }
+  }, [searchQuery]);
   
   // Friendly tag names mapping (technical term -> consumer-friendly name)
   const friendlyTagNames: Record<string, string> = {
@@ -416,10 +424,12 @@ export function Works() {
     'React', 'Next.js', 'Python', 'TypeScript'
   ];
 
+  // 항상 표시할 기본 태그 (데이터와 무관하게 표시)
+  const defaultTags = ['모바일 어플', '홈페이지', '프로그램'];
+
   // Extract unique tags for quick filters (tech stack + project types)
   const quickFilterTags = React.useMemo(() => {
     const tagCounts = new Map<string, number>();
-    const originalToFriendly = new Map<string, string>();
     
     repositories.forEach(repo => {
       // Count project types with friendly names
@@ -427,7 +437,6 @@ export function Works() {
         const lowerType = type.toLowerCase();
         const friendlyName = friendlyTagNames[lowerType] || (type.charAt(0).toUpperCase() + type.slice(1).toLowerCase());
         tagCounts.set(friendlyName, (tagCounts.get(friendlyName) || 0) + 1);
-        originalToFriendly.set(type.toLowerCase(), friendlyName);
       });
       
       // Count main language
@@ -447,23 +456,23 @@ export function Works() {
       });
     });
     
-    // Sort: priority tags first, then by count
+    // Sort data-based tags: priority tags first, then by count
     const allTags = Array.from(tagCounts.entries());
     const sortedTags = allTags.sort((a, b) => {
       const aPriority = priorityTags.indexOf(a[0]);
       const bPriority = priorityTags.indexOf(b[0]);
       
-      // Both have priority: sort by priority order
       if (aPriority !== -1 && bPriority !== -1) return aPriority - bPriority;
-      // Only a has priority
       if (aPriority !== -1) return -1;
-      // Only b has priority
       if (bPriority !== -1) return 1;
-      // Neither has priority: sort by count
       return b[1] - a[1];
     });
     
-    return sortedTags.slice(0, 8).map(([tag]) => tag);
+    // 기본 태그 + 데이터 기반 태그 (중복 제거)
+    const dataTags = sortedTags.map(([tag]) => tag).filter(tag => !defaultTags.includes(tag));
+    const combined = [...defaultTags, ...dataTags];
+    
+    return combined.slice(0, 8);
   }, [repositories]);
   
   // Filtered projects based on search (enhanced to search more fields)
@@ -791,7 +800,17 @@ export function Works() {
           }}
         >
           {filteredProjects.map((project, i) => {
-            const angle = (360 / ITEM_COUNT) * i;
+            // When filtering, distribute items evenly based on filtered count
+            // and center them so the middle item is at the front
+            const isFiltering = searchQuery.trim().length > 0;
+            const itemCount = isFiltering ? filteredProjects.length : ITEM_COUNT;
+            
+            // Calculate angle: when filtering, center the group by offsetting
+            // so middle item is at angle 0 (front)
+            const baseAngle = (360 / Math.max(itemCount, 1)) * i;
+            const centerOffset = isFiltering ? ((filteredProjects.length - 1) / 2) * (360 / Math.max(itemCount, 1)) : 0;
+            const angle = baseAngle - centerOffset;
+            
             return (
               <Spine3D
                 key={project.uniqueId}

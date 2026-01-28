@@ -1,6 +1,7 @@
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import App from "./app/App.tsx";
+import StartProject from "./app/pages/StartProject.tsx";
 import AdminLogin from "./app/pages/admin/Login.tsx";
 import AdminDashboard from "./app/pages/admin/Dashboard.tsx";
 import { AuthProvider } from "./app/contexts/AuthContext.tsx";
@@ -13,6 +14,7 @@ createRoot(document.getElementById("root")!).render(
       <AnalyticsProvider>
         <Routes>
           <Route path="/" element={<App />} />
+          <Route path="/start-project" element={<StartProject />} />
           <Route path="/admin" element={<AdminLogin />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
         </Routes>

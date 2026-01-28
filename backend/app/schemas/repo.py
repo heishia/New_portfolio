@@ -170,6 +170,9 @@ class Repository(BaseModel):
     demo_url: Optional[str] = None
     documentation_url: Optional[str] = None
     
+    # Cover image for portfolio listing
+    cover_image: Optional[str] = None
+    
     # Metrics (from GitHub API or meta.json override)
     lines_of_code: Optional[int] = None
     commit_count: Optional[int] = None

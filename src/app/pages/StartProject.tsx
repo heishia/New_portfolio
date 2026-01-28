@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import { ArrowLeft, Send } from 'lucide-react';
+import { ArrowLeft, Send, User, Mail, Phone, Wallet } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const OUTPUT_OPTIONS = [
@@ -12,12 +12,26 @@ const OUTPUT_OPTIONS = [
   { id: 'other', label: '기타' },
 ];
 
+const BUDGET_OPTIONS = [
+  { id: 'under_100', label: '100만원 미만' },
+  { id: '100_300', label: '100~300만원' },
+  { id: '300_500', label: '300~500만원' },
+  { id: '500_1000', label: '500~1000만원' },
+  { id: 'over_1000', label: '1000만원 이상' },
+  { id: 'discuss', label: '협의 후 결정' },
+];
+
 export default function StartProject() {
   const navigate = useNavigate();
   const [selectedOutput, setSelectedOutput] = useState<string>('');
   const [otherOutput, setOtherOutput] = useState('');
   const [features, setFeatures] = useState('');
   const [idea, setIdea] = useState('');
+  // Contact information
+  const [contactName, setContactName] = useState('');
+  const [contactEmail, setContactEmail] = useState('');
+  const [contactPhone, setContactPhone] = useState('');
+  const [budget, setBudget] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
@@ -37,6 +51,10 @@ export default function StartProject() {
           output_other: selectedOutput === 'other' ? otherOutput : null,
           features: features || null,
           idea: idea || null,
+          contact_name: contactName || null,
+          contact_email: contactEmail || null,
+          contact_phone: contactPhone || null,
+          budget: budget || null,
         }),
       });
 
@@ -112,6 +130,73 @@ export default function StartProject() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
+          {/* Contact Information */}
+          <div className="space-y-4">
+            <label className="block text-sm font-medium uppercase tracking-wide mb-4">
+              담당자 정보
+            </label>
+            
+            {/* Name & Email Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="relative">
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="담당자 이름"
+                  value={contactName}
+                  onChange={(e) => setContactName(e.target.value)}
+                  className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-black transition-colors"
+                />
+              </div>
+              <div className="relative">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="email"
+                  placeholder="이메일"
+                  value={contactEmail}
+                  onChange={(e) => setContactEmail(e.target.value)}
+                  className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-black transition-colors"
+                />
+              </div>
+            </div>
+
+            {/* Phone */}
+            <div className="relative">
+              <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="tel"
+                placeholder="전화번호"
+                value={contactPhone}
+                onChange={(e) => setContactPhone(e.target.value)}
+                className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-black transition-colors"
+              />
+            </div>
+          </div>
+
+          {/* Budget */}
+          <div>
+            <label className="block text-sm font-medium uppercase tracking-wide mb-4">
+              <Wallet className="inline-block w-4 h-4 mr-2" />
+              예산
+            </label>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {BUDGET_OPTIONS.map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => setBudget(option.id)}
+                  className={`px-4 py-3 border rounded-lg text-sm transition-all ${
+                    budget === option.id
+                      ? 'border-black bg-black text-white'
+                      : 'border-gray-300 hover:border-gray-500'
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Output Type */}
           <div>
             <label className="block text-sm font-medium uppercase tracking-wide mb-4">

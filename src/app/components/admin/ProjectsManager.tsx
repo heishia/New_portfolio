@@ -1,8 +1,8 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useRef } from 'react';
 import useSWR from 'swr';
 import { 
-  Upload, Trash2, Plus, Save, Loader2, Image as ImageIcon, 
-  ExternalLink, GripVertical, X, Check
+  Upload, Trash2, Loader2, Image as ImageIcon, 
+  ExternalLink, Check
 } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
@@ -18,37 +18,13 @@ const fetcher = async (url: string) => {
   return res.json();
 };
 
-interface Screenshot {
-  url: string;  // presigned URL 또는 key
-  key?: string; // Railway Bucket key
-  caption?: string;
-  order: number;
-}
-
-// 스크린샷 URL 변환 (key -> API URL)
-function getImageUrl(screenshot: Screenshot): string {
-  // key가 있으면 API를 통해 조회
-  if (screenshot.key) {
-    return `${API_BASE}/api/upload/file/${screenshot.key}`;
-  }
-  // presigned URL이면 그대로 사용
-  if (screenshot.url?.startsWith('http')) {
-    return screenshot.url;
-  }
-  // key만 저장된 경우 (url 필드에 key가 있는 경우)
-  if (screenshot.url && !screenshot.url.startsWith('http')) {
-    return `${API_BASE}/api/upload/file/${screenshot.url}`;
-  }
-  return screenshot.url;
-}
-
 interface Repository {
   id: number;
   name: string;
   title: string | null;
   description: string | null;
   html_url: string;
-  screenshots: Screenshot[];
+  cover_image: string | null;
   has_portfolio_meta: boolean;
 }
 
@@ -58,40 +34,42 @@ interface RepositoryListResponse {
   last_updated: string | null;
 }
 
+// 이미지 URL 변환 (key -> API URL)
+function getImageUrl(imageKey: string | null): string | null {
+  if (!imageKey) return null;
+  // presigned URL이면 그대로 사용
+  if (imageKey.startsWith('http')) {
+    return imageKey;
+  }
+  // key만 저장된 경우 API를 통해 조회
+  return `${API_BASE}/api/upload/file/${imageKey}`;
+}
+
 export default function ProjectsManager() {
   const { data, isLoading, mutate } = useSWR<RepositoryListResponse>(
     `${API_BASE}/api/repos`,
     fetcher
   );
   
-  // repositories 배열 추출
   const repositories = data?.repositories || [];
 
-  const [selectedProject, setSelectedProject] = useState<Repository | null>(null);
   const [uploadingFor, setUploadingFor] = useState<number | null>(null);
   const [savingFor, setSavingFor] = useState<number | null>(null);
-  const [localScreenshots, setLocalScreenshots] = useState<Map<number, Screenshot[]>>(new Map());
+  const [successFor, setSuccessFor] = useState<number | null>(null);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRefs = useRef<Map<number, HTMLInputElement>>(new Map());
 
-  // 스크린샷 가져오기 (로컬 수정 또는 원본)
-  const getScreenshots = (project: Repository): Screenshot[] => {
-    return localScreenshots.get(project.id) || project.screenshots || [];
-  };
-
-  // 파일 업로드 처리
-  const handleFileUpload = async (projectId: number, files: FileList) => {
+  // 대표이미지 업로드 처리
+  const handleCoverImageUpload = async (projectId: number, file: File) => {
     const token = localStorage.getItem('admin_token');
     setUploadingFor(projectId);
 
     try {
       const formData = new FormData();
-      Array.from(files).forEach((file) => {
-        formData.append('files', file);
-      });
+      formData.append('files', file);
       formData.append('project_id', projectId.toString());
 
-      const res = await fetch(`${API_BASE}/api/upload/screenshots`, {
+      const uploadRes = await fetch(`${API_BASE}/api/upload/screenshots`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -99,97 +77,65 @@ export default function ProjectsManager() {
         body: formData
       });
 
-      if (!res.ok) throw new Error('Upload failed');
+      if (!uploadRes.ok) throw new Error('Upload failed');
       
-      const result = await res.json();
+      const result = await uploadRes.json();
+      const imageKey = result.keys?.[0] || result.urls?.[0];
       
-      // 로컬 스크린샷 업데이트
-      const project = repositories.find(p => p.id === projectId);
-      if (project) {
-        const currentScreenshots = getScreenshots(project);
-        // keys 배열이 있으면 key 기반으로 저장, 없으면 url 사용
-        const keys = result.keys || [];
-        const urls = result.urls || [];
-        
-        const newScreenshots = [
-          ...currentScreenshots,
-          ...keys.map((key: string, idx: number) => ({
-            url: urls[idx] || key, // presigned URL 또는 key
-            key: key,
-            caption: '',
-            order: currentScreenshots.length + idx
-          }))
-        ];
-        setLocalScreenshots(prev => new Map(prev).set(projectId, newScreenshots));
-      }
-    } catch (error) {
-      console.error('Upload failed:', error);
-      alert('업로드에 실패했습니다.');
-    } finally {
-      setUploadingFor(null);
-    }
-  };
+      if (!imageKey) throw new Error('No image key returned');
 
-  // 스크린샷 삭제
-  const handleDeleteScreenshot = (projectId: number, index: number) => {
-    const project = repositories.find(p => p.id === projectId);
-    if (!project) return;
-
-    const currentScreenshots = getScreenshots(project);
-    const newScreenshots = currentScreenshots.filter((_, i) => i !== index);
-    setLocalScreenshots(prev => new Map(prev).set(projectId, newScreenshots));
-  };
-
-  // 캡션 업데이트
-  const handleCaptionChange = (projectId: number, index: number, caption: string) => {
-    const project = repositories.find(p => p.id === projectId);
-    if (!project) return;
-
-    const currentScreenshots = getScreenshots(project);
-    const newScreenshots = currentScreenshots.map((s, i) => 
-      i === index ? { ...s, caption } : s
-    );
-    setLocalScreenshots(prev => new Map(prev).set(projectId, newScreenshots));
-  };
-
-  // 변경사항 저장
-  const handleSave = async (projectId: number) => {
-    const token = localStorage.getItem('admin_token');
-    const screenshots = localScreenshots.get(projectId);
-    if (!screenshots) return;
-
-    setSavingFor(projectId);
-
-    try {
-      const res = await fetch(`${API_BASE}/api/repos/${projectId}/screenshots`, {
+      // 대표이미지 업데이트
+      setSavingFor(projectId);
+      const updateRes = await fetch(`${API_BASE}/api/repos/${projectId}/cover-image`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ screenshots })
+        body: JSON.stringify({ cover_image: imageKey })
       });
 
-      if (!res.ok) throw new Error('Save failed');
+      if (!updateRes.ok) throw new Error('Update failed');
       
-      // 로컬 변경 제거 및 데이터 새로고침
-      setLocalScreenshots(prev => {
-        const next = new Map(prev);
-        next.delete(projectId);
-        return next;
-      });
+      // 성공 표시
+      setSuccessFor(projectId);
+      setTimeout(() => setSuccessFor(null), 2000);
+      
+      // 데이터 새로고침
       mutate();
     } catch (error) {
-      console.error('Save failed:', error);
-      alert('저장에 실패했습니다.');
+      console.error('Upload failed:', error);
+      alert('업로드에 실패했습니다.');
     } finally {
+      setUploadingFor(null);
       setSavingFor(null);
     }
   };
 
-  // 변경 여부 확인
-  const hasChanges = (projectId: number): boolean => {
-    return localScreenshots.has(projectId);
+  // 대표이미지 삭제
+  const handleRemoveCoverImage = async (projectId: number) => {
+    const token = localStorage.getItem('admin_token');
+    setSavingFor(projectId);
+
+    try {
+      const res = await fetch(`${API_BASE}/api/repos/${projectId}/cover-image`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ cover_image: null })
+      });
+
+      if (!res.ok) throw new Error('Delete failed');
+      
+      mutate();
+    } catch (error) {
+      console.error('Delete failed:', error);
+      alert('삭제에 실패했습니다.');
+    } finally {
+      setSavingFor(null);
+    }
   };
 
   if (isLoading) {
@@ -205,144 +151,123 @@ export default function ProjectsManager() {
       {/* 헤더 */}
       <div>
         <h2 className="text-2xl font-bold text-gray-900">프로젝트 관리</h2>
-        <p className="text-sm text-gray-500 mt-1">프로젝트별 스크린샷을 관리합니다</p>
+        <p className="text-sm text-gray-500 mt-1">
+          각 프로젝트의 대표이미지를 설정합니다. 포트폴리오 목록에 표시됩니다.
+        </p>
       </div>
 
       {/* 프로젝트 목록 */}
       <div className="grid gap-4">
-        {repositories.map((project) => (
-          <div 
-            key={project.id} 
-            className="bg-white rounded-xl border shadow-sm overflow-hidden"
-          >
-            {/* 프로젝트 헤더 */}
+        {repositories.map((project) => {
+          const coverImageUrl = getImageUrl(project.cover_image);
+          const isUploading = uploadingFor === project.id;
+          const isSaving = savingFor === project.id;
+          const isSuccess = successFor === project.id;
+          const isProcessing = isUploading || isSaving;
+
+          return (
             <div 
-              className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 transition-colors"
-              onClick={() => setSelectedProject(
-                selectedProject?.id === project.id ? null : project
-              )}
+              key={project.id} 
+              className="bg-white rounded-xl border shadow-sm overflow-hidden"
             >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-                  <ImageIcon className="w-5 h-5 text-gray-400" />
+              <div className="flex items-center gap-4 p-4">
+                {/* 대표이미지 미리보기 */}
+                <div className="relative w-24 h-24 bg-gray-100 rounded-lg overflow-hidden shrink-0 group">
+                  {coverImageUrl ? (
+                    <>
+                      <img
+                        src={coverImageUrl}
+                        alt={project.title || project.name}
+                        className="w-full h-full object-cover"
+                      />
+                      {/* 삭제 버튼 (호버시 표시) */}
+                      <button
+                        onClick={() => handleRemoveCoverImage(project.id)}
+                        disabled={isProcessing}
+                        className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                      >
+                        <Trash2 className="w-5 h-5 text-white" />
+                      </button>
+                    </>
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-300">
+                      <ImageIcon className="w-8 h-8" />
+                    </div>
+                  )}
+                  
+                  {/* 로딩 오버레이 */}
+                  {isProcessing && (
+                    <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
+                      <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+                    </div>
+                  )}
+                  
+                  {/* 성공 표시 */}
+                  {isSuccess && (
+                    <div className="absolute inset-0 bg-green-500/80 flex items-center justify-center">
+                      <Check className="w-6 h-6 text-white" />
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <h3 className="font-medium text-gray-900">
+
+                {/* 프로젝트 정보 */}
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-medium text-gray-900 truncate">
                     {project.title || project.name}
                   </h3>
-                  <p className="text-sm text-gray-500">
-                    {getScreenshots(project).length}개 스크린샷
-                    {hasChanges(project.id) && (
-                      <span className="ml-2 text-amber-600">• 저장되지 않은 변경</span>
-                    )}
+                  {project.description && (
+                    <p className="text-sm text-gray-500 truncate mt-0.5">
+                      {project.description}
+                    </p>
+                  )}
+                  <p className="text-xs text-gray-400 mt-1">
+                    {project.cover_image ? '대표이미지 설정됨' : '대표이미지 없음'}
                   </p>
                 </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <a
-                  href={project.html_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
-                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
-                >
-                  <ExternalLink className="w-4 h-4" />
-                </a>
-              </div>
-            </div>
 
-            {/* 확장된 스크린샷 관리 */}
-            {selectedProject?.id === project.id && (
-              <div className="border-t p-4 bg-gray-50">
-                {/* 업로드 버튼 */}
-                <div className="flex items-center gap-3 mb-4">
+                {/* 액션 버튼 */}
+                <div className="flex items-center gap-2 shrink-0">
                   <input
-                    ref={fileInputRef}
+                    ref={(el) => {
+                      if (el) fileInputRefs.current.set(project.id, el);
+                    }}
                     type="file"
                     accept="image/*"
-                    multiple
                     className="hidden"
                     onChange={(e) => {
-                      if (e.target.files?.length) {
-                        handleFileUpload(project.id, e.target.files);
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        handleCoverImageUpload(project.id, file);
                         e.target.value = '';
                       }
                     }}
                   />
                   <button
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploadingFor === project.id}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                    onClick={() => fileInputRefs.current.get(project.id)?.click()}
+                    disabled={isProcessing}
+                    className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
                   >
-                    {uploadingFor === project.id ? (
+                    {isProcessing ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
                       <Upload className="w-4 h-4" />
                     )}
-                    스크린샷 업로드
+                    {project.cover_image ? '변경' : '업로드'}
                   </button>
-
-                  {hasChanges(project.id) && (
-                    <button
-                      onClick={() => handleSave(project.id)}
-                      disabled={savingFor === project.id}
-                      className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
-                    >
-                      {savingFor === project.id ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Save className="w-4 h-4" />
-                      )}
-                      변경사항 저장
-                    </button>
-                  )}
-                </div>
-
-                {/* 스크린샷 그리드 */}
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {getScreenshots(project).map((screenshot, index) => (
-                    <div 
-                      key={index}
-                      className="relative group bg-white rounded-lg border overflow-hidden"
-                    >
-                      <img
-                        src={getImageUrl(screenshot)}
-                        alt={screenshot.caption || `Screenshot ${index + 1}`}
-                        className="w-full aspect-video object-cover"
-                      />
-                      
-                      {/* 삭제 버튼 */}
-                      <button
-                        onClick={() => handleDeleteScreenshot(project.id, index)}
-                        className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-
-                      {/* 캡션 입력 */}
-                      <div className="p-2">
-                        <input
-                          type="text"
-                          value={screenshot.caption || ''}
-                          onChange={(e) => handleCaptionChange(project.id, index, e.target.value)}
-                          placeholder="캡션 입력..."
-                          className="w-full text-sm px-2 py-1 border rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        />
-                      </div>
-                    </div>
-                  ))}
-
-                  {getScreenshots(project).length === 0 && (
-                    <div className="col-span-full flex flex-col items-center justify-center py-12 text-gray-400">
-                      <ImageIcon className="w-12 h-12 mb-2" />
-                      <p>스크린샷이 없습니다</p>
-                    </div>
-                  )}
+                  
+                  <a
+                    href={project.html_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                  </a>
                 </div>
               </div>
-            )}
-          </div>
-        ))}
+            </div>
+          );
+        })}
 
         {repositories.length === 0 && (
           <div className="text-center py-12 text-gray-400">

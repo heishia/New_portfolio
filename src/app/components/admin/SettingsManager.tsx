@@ -59,16 +59,23 @@ export default function SettingsManager() {
     fetchSettings();
   }, []);
 
+  const getAuthHeaders = (): HeadersInit => {
+    const token = localStorage.getItem('admin_token');
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
+  };
+
   const fetchSettings = async () => {
     try {
       const response = await fetch(`${API_URL}/api/admin/settings`, {
-        credentials: 'include'
+        headers: getAuthHeaders()
       });
       
       if (response.ok) {
         const data = await response.json();
         setSettings(data.settings);
         setOriginalSettings(data.settings);
+      } else if (response.status === 401) {
+        setMessage({ type: 'error', text: '인증이 만료되었습니다. 다시 로그인해주세요.' });
       }
     } catch (error) {
       console.error('Failed to fetch settings:', error);
@@ -98,8 +105,10 @@ export default function SettingsManager() {
 
       const response = await fetch(`${API_URL}/api/admin/settings`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
+        headers: { 
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        },
         body: JSON.stringify({ settings: settingsArray })
       });
 

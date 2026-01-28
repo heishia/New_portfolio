@@ -214,9 +214,11 @@ export function Expertise() {
 
         {/* Services */}
         <div className="mb-20 md:mb-32">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-12">
+          <div className="flex flex-wrap justify-center gap-8 md:gap-12">
             {services.map((service, index) => (
-              <ServiceCard key={service.title} service={service} index={index} />
+              <div key={service.title} className="w-full md:w-[calc(50%-1.5rem)] lg:w-[calc(33.333%-2rem)]">
+                <ServiceCard service={service} index={index} />
+              </div>
             ))}
           </div>
         </div>

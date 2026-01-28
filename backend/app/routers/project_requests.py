@@ -21,6 +21,11 @@ class ProjectRequestCreate(BaseModel):
     output_other: Optional[str] = None
     features: Optional[str] = None
     idea: Optional[str] = None
+    # Contact information
+    contact_name: Optional[str] = None
+    contact_email: Optional[str] = None
+    contact_phone: Optional[str] = None
+    budget: Optional[str] = None
 
 
 class ProjectRequestResponse(BaseModel):
@@ -30,6 +35,10 @@ class ProjectRequestResponse(BaseModel):
     output_other: Optional[str]
     features: Optional[str]
     idea: Optional[str]
+    contact_name: Optional[str]
+    contact_email: Optional[str]
+    contact_phone: Optional[str]
+    budget: Optional[str]
     status: str
     created_at: datetime
 
@@ -69,6 +78,22 @@ def send_email_notification(request_data: ProjectRequestCreate, request_id: int)
                 <tr style="background: #f5f5f5;">
                     <td style="padding: 12px; border: 1px solid #ddd; font-weight: bold; width: 30%;">요청 번호</td>
                     <td style="padding: 12px; border: 1px solid #ddd;">#{request_id}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 12px; border: 1px solid #ddd; font-weight: bold;">담당자</td>
+                    <td style="padding: 12px; border: 1px solid #ddd;">{request_data.contact_name or '-'}</td>
+                </tr>
+                <tr style="background: #f5f5f5;">
+                    <td style="padding: 12px; border: 1px solid #ddd; font-weight: bold;">이메일</td>
+                    <td style="padding: 12px; border: 1px solid #ddd;">{request_data.contact_email or '-'}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 12px; border: 1px solid #ddd; font-weight: bold;">전화번호</td>
+                    <td style="padding: 12px; border: 1px solid #ddd;">{request_data.contact_phone or '-'}</td>
+                </tr>
+                <tr style="background: #f5f5f5;">
+                    <td style="padding: 12px; border: 1px solid #ddd; font-weight: bold;">예산</td>
+                    <td style="padding: 12px; border: 1px solid #ddd;">{request_data.budget or '-'}</td>
                 </tr>
                 <tr>
                     <td style="padding: 12px; border: 1px solid #ddd; font-weight: bold;">원하는 아웃풋</td>
@@ -121,14 +146,18 @@ async def create_project_request(request: ProjectRequestCreate):
         # Insert into database
         row = await conn.fetchrow(
             """
-            INSERT INTO project_requests (output_type, output_other, features, idea)
-            VALUES ($1, $2, $3, $4)
-            RETURNING id, output_type, output_other, features, idea, status, created_at
+            INSERT INTO project_requests (output_type, output_other, features, idea, contact_name, contact_email, contact_phone, budget)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            RETURNING id, output_type, output_other, features, idea, contact_name, contact_email, contact_phone, budget, status, created_at
             """,
             request.output_type,
             request.output_other,
             request.features,
             request.idea,
+            request.contact_name,
+            request.contact_email,
+            request.contact_phone,
+            request.budget,
         )
         
         if not row:
@@ -148,7 +177,7 @@ async def list_project_requests():
     async with pool.acquire() as conn:
         rows = await conn.fetch(
             """
-            SELECT id, output_type, output_other, features, idea, status, created_at
+            SELECT id, output_type, output_other, features, idea, contact_name, contact_email, contact_phone, budget, status, created_at
             FROM project_requests
             ORDER BY created_at DESC
             """

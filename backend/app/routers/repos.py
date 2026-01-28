@@ -25,6 +25,10 @@ class UpdateScreenshotsRequest(BaseModel):
     screenshots: List[ScreenshotItem]
 
 
+class UpdateCoverImageRequest(BaseModel):
+    cover_image: Optional[str] = None
+
+
 @router.get("/repos", response_model=RepositoryListResponse)
 async def get_repositories():
     """
@@ -177,3 +181,37 @@ async def update_screenshots(
         )
     
     return {"success": True, "count": len(request.screenshots)}
+
+
+@router.put("/repos/{repo_id}/cover-image")
+async def update_cover_image(
+    repo_id: int,
+    request: UpdateCoverImageRequest,
+    user: dict = Depends(get_current_user)
+):
+    """Update repository cover image (admin only)."""
+    pool = get_pool()
+    
+    async with pool.acquire() as conn:
+        # 레포지토리 존재 확인
+        exists = await conn.fetchval(
+            "SELECT 1 FROM repositories WHERE id = $1",
+            repo_id
+        )
+        
+        if not exists:
+            raise HTTPException(status_code=404, detail="Repository not found")
+        
+        # 업데이트
+        await conn.execute(
+            """
+            UPDATE repositories 
+            SET cover_image = $2,
+                cached_at = NOW()
+            WHERE id = $1
+            """,
+            repo_id,
+            request.cover_image
+        )
+    
+    return {"success": True, "cover_image": request.cover_image}

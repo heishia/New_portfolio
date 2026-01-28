@@ -38,6 +38,9 @@ CREATE TABLE repositories (
   demo_url TEXT,
   documentation_url TEXT,
   
+  -- Cover image for portfolio listing
+  cover_image TEXT,
+  
   -- Metrics (from GitHub API or meta.json override)
   lines_of_code INT,
   commit_count INT,

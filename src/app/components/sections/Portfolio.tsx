@@ -53,6 +53,7 @@ interface Repository {
   features: Array<{ title: string; description: string; sub_description?: string }>;
   technologies: Array<{ name: string; category: string; version?: string }>;
   screenshots: Array<{ file: string; caption: string; url?: string; type?: string }>;
+  cover_image: string | null;  // 대표이미지 (포트폴리오 목록용)
   challenges: string | null;
   achievements: string | null;
   priority: number;
@@ -247,10 +248,21 @@ const transformReposToProjects = (repos: Repository[]): ProjectDisplay[] => {
     const repo = repos[i % repos.length];
     const { spineColor, textColor } = generateColorData(i);
     
-    // Get first screenshot URL or use placeholder
-    const mainScreenshot = repo.screenshots?.[0];
-    const imageUrl = mainScreenshot?.url || 
-      `https://opengraph.githubassets.com/1/${repo.full_name}`;
+    // Get cover image or fallback to first screenshot or GitHub placeholder
+    const API_BASE = import.meta.env.VITE_API_URL || '';
+    const getCoverImageUrl = () => {
+      // 1순위: cover_image
+      if (repo.cover_image) {
+        if (repo.cover_image.startsWith('http')) return repo.cover_image;
+        return `${API_BASE}/api/upload/file/${repo.cover_image}`;
+      }
+      // 2순위: screenshots[0]
+      const mainScreenshot = repo.screenshots?.[0];
+      if (mainScreenshot?.url) return mainScreenshot.url;
+      // 3순위: GitHub placeholder
+      return `https://opengraph.githubassets.com/1/${repo.full_name}`;
+    };
+    const imageUrl = getCoverImageUrl();
     
     // Determine category from project_type or language
     const category = repo.project_type?.[0] || repo.language || 'Project';
@@ -629,10 +641,17 @@ export function Portfolio() {
         const nextRepo = uniqueRepos[nextIndex];
         const { spineColor, textColor } = generateColorData(nextIndex);
         
-        // Get first screenshot URL or use placeholder
-        const mainScreenshot = nextRepo.screenshots?.[0];
-        const imageUrl = mainScreenshot?.url || 
-          `https://opengraph.githubassets.com/1/${nextRepo.full_name}`;
+        // Get cover image or fallback to first screenshot or GitHub placeholder
+        const getNextCoverImageUrl = () => {
+          if (nextRepo.cover_image) {
+            if (nextRepo.cover_image.startsWith('http')) return nextRepo.cover_image;
+            return `${API_BASE_URL}/api/upload/file/${nextRepo.cover_image}`;
+          }
+          const mainScreenshot = nextRepo.screenshots?.[0];
+          if (mainScreenshot?.url) return mainScreenshot.url;
+          return `https://opengraph.githubassets.com/1/${nextRepo.full_name}`;
+        };
+        const imageUrl = getNextCoverImageUrl();
         
         // Determine category from project_type or language
         const category = nextRepo.project_type?.[0] || nextRepo.language || 'Project';

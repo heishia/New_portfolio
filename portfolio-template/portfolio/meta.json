@@ -34,9 +34,10 @@
   ],
 
   "screenshots": [
-    { "file": "main.png", "caption": "메인 화면", "type": "desktop" },
-    { "file": "feature-01.png", "caption": "기능 화면", "type": "desktop" },
-    { "file": "demo.mp4", "caption": "데모 영상", "type": "video" }
+    { "file": "main.png" },
+    { "file": "feature-01.png" },
+    { "file": "feature-02.png" },
+    { "file": "demo.mp4", "type": "video" }
   ],
 
   "links": {

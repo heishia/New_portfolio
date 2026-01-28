@@ -1452,15 +1452,9 @@ function ProjectDetailPage({
                       ) : (
                         <img
                           src={screenshot.url || screenshot.file}
-                          alt={screenshot.caption || `Screenshot ${i + 1}`}
+                          alt=""
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
-                      )}
-                      {/* Caption Overlay */}
-                      {screenshot.caption && (
-                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <p className="text-white text-xs line-clamp-2">{screenshot.caption}</p>
-                        </div>
                       )}
                     </button>
                   );
@@ -1524,14 +1518,9 @@ function ProjectDetailPage({
                   ) : (
                     <img
                       src={project.screenshots[selectedScreenshot]?.url || project.screenshots[selectedScreenshot]?.file}
-                      alt={project.screenshots[selectedScreenshot]?.caption || ''}
+                      alt=""
                       className="w-full h-full object-contain rounded-lg"
                     />
-                  )}
-                  {project.screenshots[selectedScreenshot]?.caption && (
-                    <p className="text-white text-center mt-4 text-sm">
-                      {project.screenshots[selectedScreenshot].caption}
-                    </p>
                   )}
                 </div>
               </motion.div>

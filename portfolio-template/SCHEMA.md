@@ -71,14 +71,18 @@ GitHub에서 자동으로 받아오는 정보를 **제외**한, 직접 관리하
 ```json
 {
   "screenshots": [
-    {
-      "file": "main.png",    // 필수: portfolio/screenshots/ 내 파일명
-      "caption": "메인 화면", // 필수
-      "type": "desktop"      // 선택: desktop | mobile | video
-    }
+    { "file": "main.png" },
+    { "file": "feature.png" },
+    { "file": "demo.mp4", "type": "video" }
   ]
 }
 ```
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|:----:|------|
+| `file` | string | ✅ | portfolio/screenshots/ 내 파일명 |
+| `caption` | string | | 설명 (생략시 파일명 표시) |
+| `type` | string | | `desktop` (기본값), `mobile`, `video` |
 
 ---
 

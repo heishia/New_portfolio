@@ -20,7 +20,7 @@ class Feature(BaseModel):
 class Screenshot(BaseModel):
     """Screenshot metadata."""
     file: str
-    caption: str
+    caption: Optional[str] = None  # 선택 - 없으면 파일명 사용
     type: Optional[str] = "desktop"
     url: Optional[str] = None
 

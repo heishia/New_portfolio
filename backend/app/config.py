@@ -30,6 +30,11 @@ class Settings(BaseSettings):
     # Discord Webhook (for notifications)
     discord_webhook_url: str = ""
     
+    # Google Cloud / Vertex AI
+    gcp_project_id: str = ""
+    gcp_location: str = "asia-northeast3"  # Seoul region
+    google_application_credentials: str = ""  # Service account JSON path
+    
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

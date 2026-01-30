@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/app/contexts/AuthContext';
-import { BarChart3, FolderOpen, LogOut, Loader2, Menu, X, Settings } from 'lucide-react';
+import { BarChart3, FolderOpen, LogOut, Loader2, Menu, X, Settings, Sparkles } from 'lucide-react';
 import AnalyticsDashboard from '@/app/components/admin/AnalyticsDashboard';
 import ProjectsManager from '@/app/components/admin/ProjectsManager';
 import SettingsManager from '@/app/components/admin/SettingsManager';
+import AiWriter from '@/app/components/admin/AiWriter';
 
-type TabType = 'analytics' | 'projects' | 'settings';
+type TabType = 'analytics' | 'projects' | 'settings' | 'ai-writer';
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<TabType>('analytics');
@@ -40,6 +41,7 @@ export default function AdminDashboard() {
   const tabs = [
     { id: 'analytics' as TabType, label: 'Analytics', icon: BarChart3 },
     { id: 'projects' as TabType, label: '프로젝트 관리', icon: FolderOpen },
+    { id: 'ai-writer' as TabType, label: 'AI 글쓰기', icon: Sparkles },
     { id: 'settings' as TabType, label: '사이트 설정', icon: Settings },
   ];
 
@@ -135,6 +137,7 @@ export default function AdminDashboard() {
         <main className="p-4 lg:p-8">
           {activeTab === 'analytics' && <AnalyticsDashboard />}
           {activeTab === 'projects' && <ProjectsManager />}
+          {activeTab === 'ai-writer' && <AiWriter />}
           {activeTab === 'settings' && <SettingsManager />}
         </main>
       </div>

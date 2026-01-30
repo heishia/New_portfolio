@@ -29,28 +29,42 @@ class GitHubService:
             self.headers["Authorization"] = f"Bearer {settings.github_token}"
     
     async def fetch_user_repos(self) -> list[dict]:
-        """Fetch all public repositories for the configured user."""
+        """Fetch all repositories for the configured user (including private if token has 'repo' scope)."""
+        settings = get_settings()
         repos = []
         page = 1
         per_page = 100
         
         async with httpx.AsyncClient() as client:
             while True:
-                url = f"{self.BASE_URL}/users/{self.username}/repos"
-                params = {
-                    "type": "owner",
-                    "sort": "updated",
-                    "direction": "desc",
-                    "per_page": per_page,
-                    "page": page,
-                }
+                # If we have a token, use /user/repos to get ALL repos (including private)
+                # Otherwise, use /users/{username}/repos for public only
+                if settings.github_token:
+                    url = f"{self.BASE_URL}/user/repos"
+                    params = {
+                        "visibility": "all",  # public, private, and internal
+                        "affiliation": "owner",  # only repos owned by user
+                        "sort": "updated",
+                        "direction": "desc",
+                        "per_page": per_page,
+                        "page": page,
+                    }
+                else:
+                    url = f"{self.BASE_URL}/users/{self.username}/repos"
+                    params = {
+                        "type": "owner",
+                        "sort": "updated",
+                        "direction": "desc",
+                        "per_page": per_page,
+                        "page": page,
+                    }
                 
                 response = await client.get(
                     url, headers=self.headers, params=params
                 )
                 
                 if response.status_code != 200:
-                    logger.error(f"Failed to fetch repos: {response.status_code}")
+                    logger.error(f"Failed to fetch repos: {response.status_code} - {response.text}")
                     break
                 
                 data = response.json()
@@ -63,6 +77,7 @@ class GitHubService:
                     break
                 page += 1
         
+        logger.info(f"Fetched {len(repos)} repositories (token: {'yes' if settings.github_token else 'no'})")
         return repos
     
     async def fetch_commit_count(self, owner: str, repo: str) -> int:

@@ -101,19 +101,29 @@ async def refresh_repositories(
     This endpoint fetches all repositories from GitHub,
     retrieves portfolio metadata if available, and updates the cache.
     
-    Optional: Pass API_SECRET in Authorization header for security.
+    Accepts either API_SECRET or admin Bearer token for authentication.
     """
+    from app.services import auth as auth_service
+    
     settings = get_settings()
     
-    # Verify API secret if configured
-    if settings.api_secret:
-        if not authorization:
-            raise HTTPException(status_code=401, detail="Authorization required")
-        
-        # Support both "Bearer <token>" and direct token
-        token = authorization.replace("Bearer ", "").strip()
-        if token != settings.api_secret:
-            raise HTTPException(status_code=403, detail="Invalid authorization")
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization required")
+    
+    # Support both "Bearer <token>" and direct token
+    token = authorization.replace("Bearer ", "").strip()
+    
+    # Check if it's API_SECRET
+    is_api_secret_valid = settings.api_secret and token == settings.api_secret
+    
+    # Check if it's a valid admin session token
+    is_admin_token_valid = False
+    if not is_api_secret_valid:
+        session = await auth_service.get_session(token)
+        is_admin_token_valid = session is not None
+    
+    if not is_api_secret_valid and not is_admin_token_valid:
+        raise HTTPException(status_code=403, detail="Invalid authorization")
     
     try:
         # Fetch from GitHub and update cache

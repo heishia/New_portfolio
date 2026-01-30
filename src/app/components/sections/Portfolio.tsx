@@ -357,6 +357,7 @@ export function Portfolio() {
   const [activeProject, setActiveProject] = useState<ProjectDisplay | null>(null);
   const [showHint, setShowHint] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [showDetail, setShowDetail] = useState(false);
   
   // Scroll position ref for modal open/close
@@ -368,13 +369,13 @@ export function Portfolio() {
   // Computed projects
   const projects = transformReposToProjects(repositories);
   
-  // Reset rotation when search query changes to center results
+  // Reset rotation when search query or tags change to center results
   useEffect(() => {
-    if (searchQuery.trim()) {
+    if (searchQuery.trim() || selectedTags.length > 0) {
       // Center the filtered results by resetting rotation
       rotation.set(0);
     }
-  }, [searchQuery]);
+  }, [searchQuery, selectedTags]);
   
   // Friendly tag names mapping (technical term -> consumer-friendly name)
   const friendlyTagNames: Record<string, string> = {
@@ -397,8 +398,8 @@ export function Portfolio() {
     'shop': '쇼핑몰/자사몰',
     'shopping': '쇼핑몰/자사몰',
     'automation': '업무 자동화',
-    'cli': '개발 도구',
-    'tool': '개발 도구',
+    'cli': '오픈소스',
+    'tool': '오픈소스',
     'api': '백엔드/API',
     'backend': '백엔드/API',
     'fullstack': '풀스택',
@@ -437,7 +438,7 @@ export function Portfolio() {
   ];
 
   // 항상 표시할 기본 태그 (데이터와 무관하게 표시)
-  const defaultTags = ['모바일 어플', '홈페이지', '프로그램'];
+  const defaultTags = ['자동화프로그램', '홈페이지', '쇼핑몰', '모바일앱', 'AI서비스', 'SaaS'];
 
   // Extract unique tags for quick filters (tech stack + project types)
   const quickFilterTags = React.useMemo(() => {
@@ -487,9 +488,10 @@ export function Portfolio() {
     return combined.slice(0, 8);
   }, [repositories]);
   
-  // Filtered projects based on search (enhanced to search more fields)
+  // Filtered projects based on search query AND selected tags
   const filteredProjects = React.useMemo(() => {
-    if (!searchQuery.trim()) return projects;
+    // If no filters, return all
+    if (!searchQuery.trim() && selectedTags.length === 0) return projects;
     
     const query = searchQuery.toLowerCase().trim();
     
@@ -497,6 +499,7 @@ export function Portfolio() {
     const matchingRepoIds = new Set<number>();
     
     repositories.forEach(repo => {
+      // Build searchable fields for this repo
       const searchFields = [
         // Title and names
         repo.title,
@@ -523,19 +526,24 @@ export function Portfolio() {
         repo.achievements,
         // Status
         repo.status,
-      ];
+      ].filter(Boolean).map(f => f!.toLowerCase());
       
-      const matches = searchFields.some(field => 
-        field && field.toLowerCase().includes(query)
-      );
+      // Check text search match
+      const matchesQuery = !query || searchFields.some(field => field.includes(query));
       
-      if (matches) {
+      // Check tag matches (project must match ALL selected tags)
+      const matchesTags = selectedTags.length === 0 || selectedTags.every(tag => {
+        const lowerTag = tag.toLowerCase();
+        return searchFields.some(field => field.includes(lowerTag));
+      });
+      
+      if (matchesQuery && matchesTags) {
         matchingRepoIds.add(repo.id);
       }
     });
     
     return projects.filter(p => matchingRepoIds.has(p.id));
-  }, [searchQuery, projects, repositories]);
+  }, [searchQuery, selectedTags, projects, repositories]);
 
   // Fetch repositories from API
   const fetchRepositories = useCallback(async () => {
@@ -821,7 +829,7 @@ export function Portfolio() {
           {filteredProjects.map((project, i) => {
             // When filtering, distribute items evenly based on filtered count
             // and center them so the middle item is at the front
-            const isFiltering = searchQuery.trim().length > 0;
+            const isFiltering = searchQuery.trim().length > 0 || selectedTags.length > 0;
             const itemCount = isFiltering ? filteredProjects.length : ITEM_COUNT;
             
             // Calculate angle: when filtering, center the group by offsetting
@@ -905,12 +913,12 @@ export function Portfolio() {
               
               {/* Clear Search Button */}
               <AnimatePresence>
-                {searchQuery && (
+                {(searchQuery || selectedTags.length > 0) && (
                   <motion.button
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.8 }}
-                    onClick={() => setSearchQuery('')}
+                    onClick={() => { setSearchQuery(''); setSelectedTags([]); }}
                     className="absolute right-14 flex items-center justify-center w-6 h-6 rounded-full bg-neutral-200 hover:bg-neutral-300 transition-colors"
                     onMouseDown={(e) => e.stopPropagation()}
                     onMouseMove={(e) => e.stopPropagation()}
@@ -923,20 +931,27 @@ export function Portfolio() {
             </div>
           </motion.div>
 
-          {/* Quick Filter Tags - Dynamic from actual data */}
+          {/* Quick Filter Tags - Dynamic from actual data (multi-select) */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.7, duration: 0.8 }}
             className="flex flex-wrap gap-2 justify-center mt-4"
           >
-            {quickFilterTags.length > 0 ? (
-              quickFilterTags.map((tag) => (
+            {(quickFilterTags.length > 0 ? quickFilterTags : ['자동화프로그램', '홈페이지', '쇼핑몰', '모바일앱', 'AI서비스', 'SaaS']).map((tag) => {
+              const isSelected = selectedTags.includes(tag);
+              return (
                 <button
                   key={tag}
-                  onClick={() => setSearchQuery(searchQuery === tag ? '' : tag)}
+                  onClick={() => {
+                    setSelectedTags(prev => 
+                      isSelected 
+                        ? prev.filter(t => t !== tag)  // Remove if already selected
+                        : [...prev, tag]  // Add if not selected
+                    );
+                  }}
                   className={`px-4 py-2 2xl:px-6 2xl:py-3 text-xs md:text-sm 2xl:text-base font-medium rounded-full transition-all hover:scale-105 ${
-                    searchQuery.toLowerCase() === tag.toLowerCase()
+                    isSelected
                       ? 'bg-black text-white border border-black'
                       : 'bg-white/60 hover:bg-white border border-black/10 hover:border-black/20'
                   }`}
@@ -949,34 +964,13 @@ export function Portfolio() {
                 >
                   {tag}
                 </button>
-              ))
-            ) : (
-              // Fallback tags when no data loaded - 소비자 친화적 키워드
-              ['모바일 어플', '홈페이지', '프로그램', '쇼핑몰/자사몰', 'SaaS', '업무 자동화'].map((tag) => (
-                <button
-                  key={tag}
-                  onClick={() => setSearchQuery(searchQuery === tag ? '' : tag)}
-                  className={`px-4 py-2 2xl:px-6 2xl:py-3 text-xs md:text-sm 2xl:text-base font-medium rounded-full transition-all hover:scale-105 ${
-                    searchQuery.toLowerCase() === tag.toLowerCase()
-                      ? 'bg-black text-white border border-black'
-                      : 'bg-white/60 hover:bg-white border border-black/10 hover:border-black/20'
-                  }`}
-                  onMouseDown={(e) => e.stopPropagation()}
-                  onMouseMove={(e) => e.stopPropagation()}
-                  onMouseUp={(e) => e.stopPropagation()}
-                  onTouchStart={(e) => e.stopPropagation()}
-                  onTouchMove={(e) => e.stopPropagation()}
-                  onTouchEnd={(e) => e.stopPropagation()}
-                >
-                  {tag}
-                </button>
-              ))
-            )}
+              );
+            })}
           </motion.div>
 
           {/* No Results Message */}
           <AnimatePresence>
-            {filteredProjects.length === 0 && searchQuery && (
+            {filteredProjects.length === 0 && (searchQuery || selectedTags.length > 0) && (
               <motion.p
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -984,7 +978,7 @@ export function Portfolio() {
                 className="text-center text-sm text-neutral-500 mt-3"
                 style={{ fontFamily: "'Inter', sans-serif" }}
               >
-                No results found
+                검색 결과가 없습니다
               </motion.p>
             )}
           </AnimatePresence>
@@ -1035,7 +1029,7 @@ export function Portfolio() {
                         alt={activeProject.title}
                         className="w-full h-full object-cover"
                         onError={(e) => {
-                          e.currentTarget.src = `https://opengraph.githubassets.com/1/${activeProject.title}`;
+                          e.currentTarget.src = `https://opengraph.githubassets.com/1/${activeProject.full_name}`;
                         }}
                       />
                       <button
@@ -1376,11 +1370,6 @@ function ProjectDetailPage({
           {/* ========== Hero Section ========== */}
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-neutral-100">
             <div className="flex items-start gap-4">
-              {/* Project Icon */}
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-2xl font-bold shadow-lg shrink-0">
-                {project.title.charAt(0).toUpperCase()}
-              </div>
-              
               <div className="flex-1 min-w-0">
                 {/* Badges */}
                 <div className="flex flex-wrap items-center gap-2 mb-2">

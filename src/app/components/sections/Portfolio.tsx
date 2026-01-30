@@ -736,7 +736,7 @@ export function Portfolio() {
 
       {/* 3D Scene Container - Desktop Only */}
       {!isMobile && (
-        <div className="relative flex-1 2xl:flex-none w-full flex items-start justify-center cursor-grab active:cursor-grabbing pt-4 md:pt-12 pb-4 md:pb-12 2xl:pt-8 2xl:pb-8 overflow-hidden">
+        <div className="relative flex-1 2xl:flex-none w-full flex items-start justify-center cursor-grab active:cursor-grabbing pt-12 md:pt-20 pb-4 md:pb-12 2xl:pt-16 2xl:pb-8 overflow-hidden">
           
           {/* Loading State */}
           {loading && (
@@ -965,25 +965,27 @@ export function Portfolio() {
                     className="w-full h-full flex flex-col md:flex-row"
                   >
                     {/* Image Side */}
-                    <div className="w-full md:w-2/3 h-1/2 md:h-full relative bg-neutral-100">
+                    <div className="w-full md:w-2/3 h-1/2 md:h-full relative bg-black">
                       {activeProject.image.includes('opengraph.githubassets.com') ? (
-                        <div className="w-full h-full flex items-center justify-center bg-neutral-100">
-                          <span className="text-sm font-bold tracking-widest uppercase text-neutral-300">
-                            ppop
-                          </span>
+                        <div className="w-full h-full flex items-center justify-center bg-white">
+                          <img
+                            src="/images/투명.png"
+                            alt="No preview"
+                            className="w-64 h-64 object-contain opacity-50"
+                          />
                         </div>
                       ) : (
                         <img
                           src={activeProject.image}
                           alt={activeProject.title}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-contain"
                           onError={(e) => {
                             e.currentTarget.style.display = 'none';
                             const parent = e.currentTarget.parentElement;
                             if (parent) {
                               const placeholder = document.createElement('div');
-                              placeholder.className = 'w-full h-full flex items-center justify-center bg-neutral-100';
-                              placeholder.innerHTML = '<span class="text-sm font-bold tracking-widest uppercase text-neutral-300">ppop</span>';
+                              placeholder.className = 'w-full h-full flex items-center justify-center bg-white';
+                              placeholder.innerHTML = '<img src="/images/투명.png" alt="No preview" class="w-48 h-48 object-contain opacity-40" />';
                               parent.appendChild(placeholder);
                             }
                           }}
@@ -1233,7 +1235,7 @@ function MobileCarousel({
   }
 
   return (
-    <div className="flex-1 flex flex-col py-6">
+    <div className="flex-1 flex flex-col pt-12 pb-6">
       {/* 연속 스크롤 캐러셀 */}
       <div
         className="flex-1 overflow-x-auto overflow-y-hidden scrollbar-hide"
@@ -1292,12 +1294,14 @@ function MobileProjectCard({
       className="relative w-full aspect-[3/4] rounded-xl overflow-hidden shadow-lg bg-white group"
       whileTap={{ scale: 0.98 }}
     >
-      {/* 배경 이미지 또는 ppop placeholder */}
+      {/* 배경 이미지 또는 placeholder */}
       {isGitHubPlaceholder ? (
-        <div className="absolute inset-0 w-full h-full bg-neutral-100 flex items-center justify-center">
-          <span className="text-[10px] font-bold tracking-widest uppercase text-neutral-300">
-            ppop
-          </span>
+        <div className="absolute inset-0 w-full h-full bg-white flex items-center justify-center">
+          <img 
+            src="/images/투명.png" 
+            alt="No preview" 
+            className="w-24 h-24 object-contain opacity-40"
+          />
         </div>
       ) : (
         <img
@@ -1305,14 +1309,14 @@ function MobileProjectCard({
           alt={project.title}
           className="absolute inset-0 w-full h-full object-cover"
           onError={(e) => {
-            // 이미지 로드 실패 시 부모에 data-fallback 추가
+            // 이미지 로드 실패 시 placeholder로 대체
             const parent = e.currentTarget.parentElement;
             if (parent) {
               e.currentTarget.style.display = 'none';
-              // ppop placeholder 생성
+              // 이미지 placeholder 생성
               const placeholder = document.createElement('div');
-              placeholder.className = 'absolute inset-0 w-full h-full bg-neutral-100 flex items-center justify-center';
-              placeholder.innerHTML = '<span class="text-[10px] font-bold tracking-widest uppercase text-neutral-300">ppop</span>';
+              placeholder.className = 'absolute inset-0 w-full h-full bg-white flex items-center justify-center';
+              placeholder.innerHTML = '<img src="/images/투명.png" alt="No preview" class="w-24 h-24 object-contain opacity-40" />';
               parent.insertBefore(placeholder, e.currentTarget);
             }
           }}

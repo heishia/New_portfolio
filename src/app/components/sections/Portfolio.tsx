@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { motion, useMotionValue, AnimatePresence, useSpring } from 'motion/react';
 import { useLenis } from 'lenis/react';
-import { ArrowRight, X, Hand, Search, RefreshCw, ExternalLink, Github, Eye, Star, GitFork, Calendar, ChevronLeft, ChevronRight, Code2, Database, Globe, Layers, Server, Smartphone, Play, Image as ImageIcon, Users, FileCode, GitCommit, Clock, CheckCircle2, Building2, BookOpen, Briefcase } from 'lucide-react';
+import { ArrowRight, X, Hand, Search, RefreshCw, ExternalLink, Github, Eye, Star, Calendar, ChevronLeft, ChevronRight, Code2, Play, Users, FileCode, GitCommit, Building2, BookOpen, Briefcase } from 'lucide-react';
 
 // --- API Configuration ---
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
@@ -253,12 +253,24 @@ const transformReposToProjects = (repos: Repository[]): ProjectDisplay[] => {
     const getCoverImageUrl = () => {
       // 1순위: cover_image
       if (repo.cover_image) {
+        // presigned URL이면 그대로 사용
         if (repo.cover_image.startsWith('http')) return repo.cover_image;
+        // 로컬 업로드 경로 (/uploads/...)면 백엔드 URL과 결합
+        if (repo.cover_image.startsWith('/uploads/')) {
+          return `${API_BASE}${repo.cover_image}`;
+        }
+        // key만 저장된 경우 API를 통해 조회
         return `${API_BASE}/api/upload/file/${repo.cover_image}`;
       }
       // 2순위: screenshots[0]
       const mainScreenshot = repo.screenshots?.[0];
-      if (mainScreenshot?.url) return mainScreenshot.url;
+      if (mainScreenshot?.url) {
+        if (mainScreenshot.url.startsWith('http')) return mainScreenshot.url;
+        if (mainScreenshot.url.startsWith('/uploads/')) {
+          return `${API_BASE}${mainScreenshot.url}`;
+        }
+        return `${API_BASE}/api/upload/file/${mainScreenshot.url}`;
+      }
       // 3순위: GitHub placeholder
       return `https://opengraph.githubassets.com/1/${repo.full_name}`;
     };
@@ -652,11 +664,23 @@ export function Portfolio() {
         // Get cover image or fallback to first screenshot or GitHub placeholder
         const getNextCoverImageUrl = () => {
           if (nextRepo.cover_image) {
+            // presigned URL이면 그대로 사용
             if (nextRepo.cover_image.startsWith('http')) return nextRepo.cover_image;
+            // 로컬 업로드 경로 (/uploads/...)면 백엔드 URL과 결합
+            if (nextRepo.cover_image.startsWith('/uploads/')) {
+              return `${API_BASE_URL}${nextRepo.cover_image}`;
+            }
+            // key만 저장된 경우 API를 통해 조회
             return `${API_BASE_URL}/api/upload/file/${nextRepo.cover_image}`;
           }
           const mainScreenshot = nextRepo.screenshots?.[0];
-          if (mainScreenshot?.url) return mainScreenshot.url;
+          if (mainScreenshot?.url) {
+            if (mainScreenshot.url.startsWith('http')) return mainScreenshot.url;
+            if (mainScreenshot.url.startsWith('/uploads/')) {
+              return `${API_BASE_URL}${mainScreenshot.url}`;
+            }
+            return `${API_BASE_URL}/api/upload/file/${mainScreenshot.url}`;
+          }
           return `https://opengraph.githubassets.com/1/${nextRepo.full_name}`;
         };
         const imageUrl = getNextCoverImageUrl();
@@ -1242,17 +1266,6 @@ function Spine3D({ project, angle, radius, onSelect }: { project: ProjectDisplay
     </div>
   );
 }
-
-// --- Category Icon Helper ---
-const getCategoryIcon = (category: string) => {
-  const lowerCategory = category.toLowerCase();
-  if (lowerCategory.includes('frontend') || lowerCategory.includes('ui')) return <Globe className="w-4 h-4" />;
-  if (lowerCategory.includes('backend') || lowerCategory.includes('server')) return <Server className="w-4 h-4" />;
-  if (lowerCategory.includes('database') || lowerCategory.includes('db')) return <Database className="w-4 h-4" />;
-  if (lowerCategory.includes('mobile') || lowerCategory.includes('app')) return <Smartphone className="w-4 h-4" />;
-  if (lowerCategory.includes('framework') || lowerCategory.includes('library')) return <Layers className="w-4 h-4" />;
-  return <Code2 className="w-4 h-4" />;
-};
 
 // --- Category Color Helper ---
 const getCategoryColor = (_category: string) => {

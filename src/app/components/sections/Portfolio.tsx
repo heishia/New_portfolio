@@ -1069,14 +1069,29 @@ export function Portfolio() {
                   >
                     {/* Image Side */}
                     <div className="w-full md:w-2/3 h-1/2 md:h-full relative bg-neutral-100">
-                      <img
-                        src={activeProject.image}
-                        alt={activeProject.title}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.currentTarget.src = `https://opengraph.githubassets.com/1/${activeProject.full_name}`;
-                        }}
-                      />
+                      {activeProject.image.includes('opengraph.githubassets.com') ? (
+                        <div className="w-full h-full flex items-center justify-center bg-neutral-100">
+                          <span className="text-sm font-bold tracking-widest uppercase text-neutral-300">
+                            ppop
+                          </span>
+                        </div>
+                      ) : (
+                        <img
+                          src={activeProject.image}
+                          alt={activeProject.title}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            const parent = e.currentTarget.parentElement;
+                            if (parent) {
+                              const placeholder = document.createElement('div');
+                              placeholder.className = 'w-full h-full flex items-center justify-center bg-neutral-100';
+                              placeholder.innerHTML = '<span class="text-sm font-bold tracking-widest uppercase text-neutral-300">ppop</span>';
+                              parent.appendChild(placeholder);
+                            }
+                          }}
+                        />
+                      )}
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -1461,21 +1476,41 @@ function MobileProjectCard({
   project: ProjectDisplay;
   onSelect: () => void;
 }) {
+  // GitHub placeholder인지 확인 (대표이미지가 없는 경우)
+  const isGitHubPlaceholder = project.image.includes('opengraph.githubassets.com');
+  
   return (
     <motion.button
       onClick={onSelect}
       className="relative aspect-[3/4] rounded-xl overflow-hidden shadow-lg bg-white group"
       whileTap={{ scale: 0.98 }}
     >
-      {/* 배경 이미지 */}
-      <img
-        src={project.image}
-        alt={project.title}
-        className="absolute inset-0 w-full h-full object-cover"
-        onError={(e) => {
-          e.currentTarget.src = `https://opengraph.githubassets.com/1/${project.full_name}`;
-        }}
-      />
+      {/* 배경 이미지 또는 ppop placeholder */}
+      {isGitHubPlaceholder ? (
+        <div className="absolute inset-0 w-full h-full bg-neutral-100 flex items-center justify-center">
+          <span className="text-[10px] font-bold tracking-widest uppercase text-neutral-300">
+            ppop
+          </span>
+        </div>
+      ) : (
+        <img
+          src={project.image}
+          alt={project.title}
+          className="absolute inset-0 w-full h-full object-cover"
+          onError={(e) => {
+            // 이미지 로드 실패 시 부모에 data-fallback 추가
+            const parent = e.currentTarget.parentElement;
+            if (parent) {
+              e.currentTarget.style.display = 'none';
+              // ppop placeholder 생성
+              const placeholder = document.createElement('div');
+              placeholder.className = 'absolute inset-0 w-full h-full bg-neutral-100 flex items-center justify-center';
+              placeholder.innerHTML = '<span class="text-[10px] font-bold tracking-widest uppercase text-neutral-300">ppop</span>';
+              parent.insertBefore(placeholder, e.currentTarget);
+            }
+          }}
+        />
+      )}
       
       {/* 그라데이션 오버레이 */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />

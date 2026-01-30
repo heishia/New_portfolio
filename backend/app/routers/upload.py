@@ -96,12 +96,16 @@ async def upload_screenshots(
                     ContentType=content_type
                 )
                 
-                # Presigned URL 생성 (90일 - Railway 최대)
-                presigned_url = generate_presigned_url(key, expires_in=86400 * 90)
+                # Public URL 사용 (presigner 서비스 경유)
+                if settings.bucket_public_url:
+                    public_url = f"{settings.bucket_public_url}/{key}"
+                else:
+                    # fallback: presigned URL
+                    public_url = generate_presigned_url(key, expires_in=86400 * 90)
                 
                 uploaded_files.append({
                     "key": key,
-                    "url": presigned_url
+                    "url": public_url
                 })
             else:
                 # 로컬 저장 (개발용)

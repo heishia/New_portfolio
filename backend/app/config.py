@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     bucket_access_key_id: str = ""
     bucket_secret_access_key: str = ""
     bucket_name: str = ""
+    bucket_public_url: str = ""  # Public presigner URL (e.g., https://s3-public-presigner-xxx.up.railway.app)
     
     # Discord Webhook (for notifications)
     discord_webhook_url: str = ""

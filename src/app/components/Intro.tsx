@@ -7,7 +7,6 @@ interface IntroProps {
 
 export function Intro({ onComplete }: IntroProps) {
   const [isAnimationDone, setIsAnimationDone] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
 
   const topLineControls = useAnimation();
   const bottomLineControls = useAnimation();
@@ -15,16 +14,6 @@ export function Intro({ onComplete }: IntroProps) {
   const ppopContainerBlueControls = useAnimation();
   const ppopContainerWhiteControls = useAnimation();
   const devContainerControls = useAnimation();
-
-  // 모바일 감지
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
 
   useEffect(() => {
     const sequence = async () => {
@@ -46,8 +35,6 @@ export function Intro({ onComplete }: IntroProps) {
 
       // Force initial render frame
       await new Promise(r => setTimeout(r, 100));
-
-      const strikeDuration = 0.8; // Uniform speed
 
       // 1. Strike (Left 200 -> Grows 400px)
       // Strike Zone: 200px to 600px.
@@ -88,8 +75,6 @@ export function Intro({ onComplete }: IntroProps) {
       });
 
       // 2. Wedge Open
-      const wedgeDuration = 1.8;
-
       const wedgePivotX = 600; // End of text (75%)
       const wedgeStartLeft = 200;
       const wedgeStartWidth = 400; // Full text width
@@ -251,7 +236,7 @@ export function Intro({ onComplete }: IntroProps) {
       <div className="relative w-full h-screen flex items-center justify-center">
 
         {/* 800px FIXED STAGE - scaled down for smaller screens */}
-        <div className="intro-stage relative w-[800px] h-[400px] flex items-center justify-center scale-[0.25] md:scale-[0.35] xl:scale-[0.4] 2xl:scale-[0.5]">
+        <div className="intro-stage relative w-[800px] h-[400px] flex items-center justify-center scale-[0.45] sm:scale-[0.5] md:scale-[0.6] lg:scale-[0.7] xl:scale-[0.8] 2xl:scale-[0.9]">
 
           {/* PPOP Layer */}
           <motion.div

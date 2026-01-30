@@ -215,12 +215,11 @@ const generateColorData = (index: number) => {
 // --- Constants ---
 const ITEM_COUNT = 40;
 const ITEM_WIDTH = 60;
-const ITEM_WIDTH_MOBILE = 40; // 모바일에서 더 작은 너비
-const GAP_MOBILE = 6;
 const DESKTOP_RADIUS = 500;
 const LARGE_DESKTOP_RADIUS = 800;
-const MOBILE_VISIBLE_COUNT = 6;
-const MOBILE_RADIUS = (MOBILE_VISIBLE_COUNT * (ITEM_WIDTH_MOBILE + GAP_MOBILE)) / (2 * Math.PI) * 1.8; // 모바일에서 겹침 방지
+
+// 모바일 캐러셀 설정
+const MOBILE_ITEMS_PER_PAGE = 3; // 모바일에서 한 페이지당 보여줄 아이템 수
 
 // --- Markdown Helper ---
 // 간단한 마크다운 변환 (bold만 지원)
@@ -373,6 +372,9 @@ export function Portfolio() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [showDetail, setShowDetail] = useState(false);
   
+  // 모바일 캐러셀 상태
+  const [mobileCurrentPage, setMobileCurrentPage] = useState(0);
+  
   // Scroll position ref for modal open/close
   const savedScrollY = useRef(0);
   
@@ -388,6 +390,8 @@ export function Portfolio() {
       // Center the filtered results by resetting rotation
       rotation.set(0);
     }
+    // 모바일에서 필터 변경 시 첫 페이지로 이동
+    setMobileCurrentPage(0);
   }, [searchQuery, selectedTags]);
   
   // Friendly tag names mapping (technical term -> consumer-friendly name)
@@ -812,13 +816,16 @@ export function Portfolio() {
     <section
       id="portfolio"
       className="relative w-full min-h-screen 2xl:min-h-0 2xl:h-auto bg-[#F0F0F0] overflow-hidden flex flex-col perspective-[2000px] select-none"
-      onMouseDown={onMouseDown}
-      onMouseMove={onMouseMove}
-      onMouseUp={onMouseUp}
-      onMouseLeave={onMouseLeave}
-      onTouchStart={onTouchStart}
-      onTouchMove={onTouchMove}
-      onTouchEnd={onTouchEnd}
+      // 데스크탑에서만 3D 회전 드래그 핸들러 적용
+      {...(!isMobile && {
+        onMouseDown,
+        onMouseMove,
+        onMouseUp,
+        onMouseLeave,
+        onTouchStart,
+        onTouchMove,
+        onTouchEnd,
+      })}
     >
       {/* Header */}
       <div className="w-full text-center pointer-events-none z-10 shrink-0 pt-12 md:pt-16 pb-4 md:pb-6">
@@ -827,73 +834,86 @@ export function Portfolio() {
         </h2>
       </div>
 
-      {/* 3D Scene Container */}
-      <div className="relative flex-1 2xl:flex-none w-full flex items-start justify-center cursor-grab active:cursor-grabbing pt-4 md:pt-12 pb-4 md:pb-12 2xl:pt-8 2xl:pb-8 overflow-hidden">
-        
-        {/* Loading State */}
-        {loading && (
-          <div className="absolute inset-0 flex items-center justify-center z-40">
-            <div className="flex flex-col items-center gap-4">
-              <RefreshCw className="w-8 h-8 animate-spin text-neutral-400" />
-              <span className="text-sm text-neutral-500 font-mono">Loading projects...</span>
+      {/* 3D Scene Container - Desktop Only */}
+      {!isMobile && (
+        <div className="relative flex-1 2xl:flex-none w-full flex items-start justify-center cursor-grab active:cursor-grabbing pt-4 md:pt-12 pb-4 md:pb-12 2xl:pt-8 2xl:pb-8 overflow-hidden">
+          
+          {/* Loading State */}
+          {loading && (
+            <div className="absolute inset-0 flex items-center justify-center z-40">
+              <div className="flex flex-col items-center gap-4">
+                <RefreshCw className="w-8 h-8 animate-spin text-neutral-400" />
+                <span className="text-sm text-neutral-500 font-mono">Loading projects...</span>
+              </div>
             </div>
-          </div>
-        )}
-
-        {/* Rotating Cylinder */}
-        <motion.div
-          className="relative h-[45vh] md:h-[60vh] 2xl:h-[45vh] w-[40px] md:w-[60px]"
-          style={{
-            rotateY: smoothRotation,
-            opacity: loading ? 0.3 : 1,
-            transformStyle: 'preserve-3d',
-            pointerEvents: 'none',
-          }}
-        >
-          {filteredProjects.map((project, i) => {
-            // When filtering, distribute items evenly based on filtered count
-            // and center them so the middle item is at the front
-            const isFiltering = searchQuery.trim().length > 0 || selectedTags.length > 0;
-            const itemCount = isFiltering ? filteredProjects.length : ITEM_COUNT;
-            
-            // Calculate angle: when filtering, center the group by offsetting
-            // so middle item is at angle 0 (front)
-            const baseAngle = (360 / Math.max(itemCount, 1)) * i;
-            const centerOffset = isFiltering ? ((filteredProjects.length - 1) / 2) * (360 / Math.max(itemCount, 1)) : 0;
-            const angle = baseAngle - centerOffset;
-            
-            return (
-              <Spine3D
-                key={project.uniqueId}
-                project={project}
-                angle={angle}
-                radius={isMobile ? MOBILE_RADIUS : (isLargeDesktop ? LARGE_DESKTOP_RADIUS : DESKTOP_RADIUS)}
-                isMobile={isMobile}
-                onSelect={() => {
-                  if (!hasMoved.current) {
-                    setActiveProject(project);
-                  }
-                }}
-              />
-            );
-          })}
-        </motion.div>
-
-        {/* Drag Hint */}
-        <AnimatePresence>
-          {showHint && !loading && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-3 pointer-events-none text-neutral-400 z-30"
-            >
-              <Hand className="w-5 h-5 2xl:w-7 2xl:h-7 animate-pulse" />
-              <span className="text-xs 2xl:text-base font-mono uppercase tracking-widest">Drag to Rotate</span>
-            </motion.div>
           )}
-        </AnimatePresence>
-      </div>
+
+          {/* Rotating Cylinder */}
+          <motion.div
+            className="relative h-[60vh] 2xl:h-[45vh] w-[60px]"
+            style={{
+              rotateY: smoothRotation,
+              opacity: loading ? 0.3 : 1,
+              transformStyle: 'preserve-3d',
+              pointerEvents: 'none',
+            }}
+          >
+            {filteredProjects.map((project, i) => {
+              // When filtering, distribute items evenly based on filtered count
+              // and center them so the middle item is at the front
+              const isFiltering = searchQuery.trim().length > 0 || selectedTags.length > 0;
+              const itemCount = isFiltering ? filteredProjects.length : ITEM_COUNT;
+              
+              // Calculate angle: when filtering, center the group by offsetting
+              // so middle item is at angle 0 (front)
+              const baseAngle = (360 / Math.max(itemCount, 1)) * i;
+              const centerOffset = isFiltering ? ((filteredProjects.length - 1) / 2) * (360 / Math.max(itemCount, 1)) : 0;
+              const angle = baseAngle - centerOffset;
+              
+              return (
+                <Spine3D
+                  key={project.uniqueId}
+                  project={project}
+                  angle={angle}
+                  radius={isLargeDesktop ? LARGE_DESKTOP_RADIUS : DESKTOP_RADIUS}
+                  onSelect={() => {
+                    if (!hasMoved.current) {
+                      setActiveProject(project);
+                    }
+                  }}
+                />
+              );
+            })}
+          </motion.div>
+
+          {/* Drag Hint */}
+          <AnimatePresence>
+            {showHint && !loading && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-3 pointer-events-none text-neutral-400 z-30"
+              >
+                <Hand className="w-5 h-5 2xl:w-7 2xl:h-7 animate-pulse" />
+                <span className="text-xs 2xl:text-base font-mono uppercase tracking-widest">Drag to Rotate</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
+
+      {/* Mobile Carousel */}
+      {isMobile && (
+        <MobileCarousel
+          projects={filteredProjects}
+          loading={loading}
+          onSelectProject={(project) => setActiveProject(project)}
+          currentPage={mobileCurrentPage}
+          setCurrentPage={setMobileCurrentPage}
+          itemsPerPage={MOBILE_ITEMS_PER_PAGE}
+        />
+      )}
 
       {/* Search Bar & Controls */}
       <div className="w-full px-6 pointer-events-auto z-20 shrink-0 pb-12 md:pb-16 2xl:pt-12 2xl:pb-16">
@@ -1207,20 +1227,17 @@ export function Portfolio() {
   );
 }
 
-function Spine3D({ project, angle, radius, isMobile, onSelect }: { project: ProjectDisplay, angle: number, radius: number, isMobile: boolean, onSelect: () => void }) {
+function Spine3D({ project, angle, radius, onSelect }: { project: ProjectDisplay, angle: number, radius: number, onSelect: () => void }) {
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     onSelect();
   };
 
-  // 모바일에서 더 작은 크기 사용
-  const itemWidth = isMobile ? ITEM_WIDTH_MOBILE : ITEM_WIDTH;
-
   return (
     <div
       className="absolute top-0 left-0 h-full group"
       style={{
-        width: `${itemWidth}px`,
+        width: `${ITEM_WIDTH}px`,
         transform: `rotateY(${angle}deg) translateZ(${radius}px)`,
         transformStyle: 'preserve-3d',
         backfaceVisibility: 'hidden',
@@ -1240,16 +1257,16 @@ function Spine3D({ project, angle, radius, isMobile, onSelect }: { project: Proj
           backgroundColor: project.spineColor,
         }}
       >
-        <div className="w-full h-full flex flex-col items-center justify-between py-4 md:py-6">
+        <div className="w-full h-full flex flex-col items-center justify-between py-6">
           <span
-            className="text-[8px] md:text-[10px] font-mono opacity-60"
+            className="text-[10px] font-mono opacity-60"
             style={{ color: project.textColor }}
           >
             {project.displayNumber < 10 ? `0${project.displayNumber}` : project.displayNumber}
           </span>
 
           <h4
-            className="text-sm md:text-lg font-bold tracking-wider flex-1 flex items-center justify-center text-center py-2 md:py-4"
+            className="text-lg font-bold tracking-wider flex-1 flex items-center justify-center text-center py-4"
             style={{
               writingMode: 'vertical-rl',
               color: project.textColor,
@@ -1261,7 +1278,7 @@ function Spine3D({ project, angle, radius, isMobile, onSelect }: { project: Proj
           </h4>
 
           <span
-            className="text-[8px] md:text-[10px] font-mono -rotate-90"
+            className="text-[10px] font-mono -rotate-90"
             style={{ color: project.textColor }}
           >
             {project.year}
@@ -1269,6 +1286,219 @@ function Spine3D({ project, angle, radius, isMobile, onSelect }: { project: Proj
         </div>
       </motion.div>
     </div>
+  );
+}
+
+// --- Mobile Carousel Component ---
+function MobileCarousel({
+  projects,
+  loading,
+  onSelectProject,
+  currentPage,
+  setCurrentPage,
+  itemsPerPage,
+}: {
+  projects: ProjectDisplay[];
+  loading: boolean;
+  onSelectProject: (project: ProjectDisplay) => void;
+  currentPage: number;
+  setCurrentPage: (page: number) => void;
+  itemsPerPage: number;
+}) {
+  // 중복 제거: 실제 repository 기반으로 unique projects만 표시
+  const uniqueProjects = React.useMemo(() => {
+    const seen = new Set<number>();
+    return projects.filter(p => {
+      if (seen.has(p.id)) return false;
+      seen.add(p.id);
+      return true;
+    });
+  }, [projects]);
+
+  const totalPages = Math.ceil(uniqueProjects.length / itemsPerPage);
+  const startIndex = currentPage * itemsPerPage;
+  const visibleProjects = uniqueProjects.slice(startIndex, startIndex + itemsPerPage);
+
+  // 터치 스와이프
+  const touchStartX = React.useRef(0);
+  const touchEndX = React.useRef(0);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    touchEndX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    const diff = touchStartX.current - touchEndX.current;
+    const threshold = 50;
+
+    if (diff > threshold && currentPage < totalPages - 1) {
+      // 왼쪽으로 스와이프 → 다음 페이지
+      setCurrentPage(currentPage + 1);
+    } else if (diff < -threshold && currentPage > 0) {
+      // 오른쪽으로 스와이프 → 이전 페이지
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  // 페이지 변경 시 리셋 (필터링 등으로 페이지가 범위를 벗어날 때)
+  React.useEffect(() => {
+    if (currentPage >= totalPages && totalPages > 0) {
+      setCurrentPage(totalPages - 1);
+    }
+  }, [totalPages, currentPage, setCurrentPage]);
+
+  if (loading) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <RefreshCw className="w-8 h-8 animate-spin text-neutral-400" />
+          <span className="text-sm text-neutral-500 font-mono">Loading projects...</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex-1 flex flex-col px-4 pt-4 pb-6">
+      {/* 캐러셀 영역 */}
+      <div
+        className="flex-1 overflow-hidden"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        <motion.div
+          className="grid grid-cols-3 gap-3 h-full"
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          key={currentPage}
+          transition={{ duration: 0.3 }}
+        >
+          {visibleProjects.map((project) => (
+            <MobileProjectCard
+              key={project.uniqueId}
+              project={project}
+              onSelect={() => onSelectProject(project)}
+            />
+          ))}
+          {/* 빈 슬롯 채우기 */}
+          {visibleProjects.length < itemsPerPage &&
+            Array.from({ length: itemsPerPage - visibleProjects.length }).map((_, i) => (
+              <div key={`empty-${i}`} className="aspect-[3/4] bg-neutral-100/50 rounded-xl" />
+            ))}
+        </motion.div>
+      </div>
+
+      {/* 페이지네이션 */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-4 mt-4">
+          {/* 이전 버튼 */}
+          <button
+            onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
+            disabled={currentPage === 0}
+            className="w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed transition-opacity"
+          >
+            <ChevronLeft className="w-5 h-5 text-neutral-700" />
+          </button>
+
+          {/* 페이지 인디케이터 */}
+          <div className="flex items-center gap-2">
+            {Array.from({ length: Math.min(totalPages, 7) }).map((_, i) => {
+              // 페이지가 많을 경우 현재 페이지 주변만 표시
+              let pageIndex = i;
+              if (totalPages > 7) {
+                if (currentPage < 4) {
+                  pageIndex = i;
+                } else if (currentPage > totalPages - 4) {
+                  pageIndex = totalPages - 7 + i;
+                } else {
+                  pageIndex = currentPage - 3 + i;
+                }
+              }
+
+              return (
+                <button
+                  key={pageIndex}
+                  onClick={() => setCurrentPage(pageIndex)}
+                  className={`w-2.5 h-2.5 rounded-full transition-all ${
+                    pageIndex === currentPage
+                      ? 'bg-neutral-800 scale-125'
+                      : 'bg-neutral-300 hover:bg-neutral-400'
+                  }`}
+                />
+              );
+            })}
+          </div>
+
+          {/* 다음 버튼 */}
+          <button
+            onClick={() => setCurrentPage(Math.min(totalPages - 1, currentPage + 1))}
+            disabled={currentPage === totalPages - 1}
+            className="w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed transition-opacity"
+          >
+            <ChevronRight className="w-5 h-5 text-neutral-700" />
+          </button>
+        </div>
+      )}
+
+      {/* 총 프로젝트 수 표시 */}
+      <p className="text-center text-xs text-neutral-400 mt-3 font-mono">
+        {uniqueProjects.length}개의 프로젝트 중 {startIndex + 1}-{Math.min(startIndex + itemsPerPage, uniqueProjects.length)}
+      </p>
+    </div>
+  );
+}
+
+// --- Mobile Project Card ---
+function MobileProjectCard({
+  project,
+  onSelect,
+}: {
+  project: ProjectDisplay;
+  onSelect: () => void;
+}) {
+  return (
+    <motion.button
+      onClick={onSelect}
+      className="relative aspect-[3/4] rounded-xl overflow-hidden shadow-lg bg-white group"
+      whileTap={{ scale: 0.98 }}
+    >
+      {/* 배경 이미지 */}
+      <img
+        src={project.image}
+        alt={project.title}
+        className="absolute inset-0 w-full h-full object-cover"
+        onError={(e) => {
+          e.currentTarget.src = `https://opengraph.githubassets.com/1/${project.full_name}`;
+        }}
+      />
+      
+      {/* 그라데이션 오버레이 */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+      
+      {/* 컨텐츠 */}
+      <div className="absolute inset-0 flex flex-col justify-end p-3">
+        {/* 카테고리 뱃지 */}
+        <span className="absolute top-2 left-2 px-2 py-0.5 text-[10px] font-medium bg-white/90 text-neutral-700 rounded-full">
+          {project.category}
+        </span>
+        
+        {/* 프로젝트 정보 */}
+        <h3 className="text-white font-bold text-sm leading-tight line-clamp-2 mb-1">
+          {project.title}
+        </h3>
+        <p className="text-white/70 text-[10px] font-mono">
+          {project.yearMonth}
+        </p>
+      </div>
+      
+      {/* 호버/탭 효과 */}
+      <div className="absolute inset-0 bg-white/0 group-active:bg-white/10 transition-colors" />
+    </motion.button>
   );
 }
 

@@ -60,8 +60,8 @@ class AIWriterService:
             location=settings.gcp_location,
         )
         
-        # Use Gemini 1.5 Flash for fast responses
-        self._model = GenerativeModel("gemini-1.5-flash-002")
+        # Use Gemini 3 Flash for better reasoning and quality
+        self._model = GenerativeModel("gemini-3-flash-preview")
         self._initialized = True
         logger.info(f"Vertex AI initialized: project={settings.gcp_project_id}, location={settings.gcp_location}")
     

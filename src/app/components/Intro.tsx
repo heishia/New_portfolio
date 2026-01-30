@@ -233,28 +233,48 @@ export function Intro({ onComplete }: IntroProps) {
       animate={isAnimationDone ? { opacity: 0 } : { opacity: 1 }}
       transition={{ duration: 0.3 }}
     >
-      <div className="relative w-full h-screen flex items-center justify-center">
+      {/* 800px FIXED STAGE - transform 기반 중앙 정렬 */}
+      <div 
+        className="intro-stage absolute left-1/2 top-1/2 w-[800px] h-[400px] -translate-x-1/2 -translate-y-1/2 scale-[0.17] md:scale-[0.25] transform-gpu"
+      >
 
-        {/* 800px FIXED STAGE - 모바일 스케일 상향 조정 */}
-        <div className="intro-stage relative w-[800px] h-[400px] flex items-center justify-center scale-[0.4] sm:scale-[0.45] md:scale-[0.5] lg:scale-[0.55] xl:scale-[0.6] 2xl:scale-[0.7] transform-gpu">
-
-          {/* PPOP Layer */}
+          {/* PPOP Layer - 텍스트를 200px~600px 영역에 고정 */}
           <motion.div
-            className="absolute inset-0 flex items-center justify-center"
+            className="absolute inset-0"
             initial={{ opacity: 1, clipPath: 'inset(0 0 0 0)' }}
             animate={ppopContainerBlueControls}
           >
-            <h1 className="text-9xl font-bold tracking-tighter text-[#0044CC]" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+            <h1 
+              className="absolute text-9xl font-bold tracking-tighter text-[#0044CC] whitespace-nowrap"
+              style={{ 
+                fontFamily: 'Montserrat, sans-serif',
+                left: 200,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                width: 400,
+                textAlign: 'center'
+              }}
+            >
               PPOP
             </h1>
           </motion.div>
 
           <motion.div
-            className="absolute inset-0 flex items-center justify-center"
+            className="absolute inset-0"
             initial={{ opacity: 1, clipPath: 'inset(49% 75% 49% 25%)' }}
             animate={ppopContainerWhiteControls}
           >
-            <h1 className="text-9xl font-bold tracking-tighter text-white" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+            <h1 
+              className="absolute text-9xl font-bold tracking-tighter text-white whitespace-nowrap"
+              style={{ 
+                fontFamily: 'Montserrat, sans-serif',
+                left: 200,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                width: 400,
+                textAlign: 'center'
+              }}
+            >
               PPOP
             </h1>
           </motion.div>
@@ -265,28 +285,27 @@ export function Intro({ onComplete }: IntroProps) {
             initial={{ opacity: 1, clipPath: 'inset(0 0 0 100%)' }}
             animate={devContainerControls}
           >
-            <h1 className="text-6xl md:text-7xl font-sans text-white tracking-tight" style={{ fontFamily: 'Inter, sans-serif' }}>
+            <h1 className="text-6xl md:text-7xl font-sans text-white tracking-tight whitespace-nowrap" style={{ fontFamily: 'Inter, sans-serif' }}>
               developer kimppop
             </h1>
           </motion.div>
 
           {/* Lines Layer */}
-          <div className="absolute inset-x-0 top-1/2 h-0 z-50">
+          <div className="absolute inset-0 z-50 pointer-events-none">
             <motion.div
               className="absolute bg-white h-[4px]"
-              style={{ left: 0, top: 0, transformOrigin: '100% 50%' }}
-              initial={{ width: 0 }}
+              style={{ top: 200, transformOrigin: '100% 50%' }}
+              initial={{ width: 0, left: 200 }}
               animate={topLineControls}
             />
             <motion.div
               className="absolute bg-white h-[4px]"
-              style={{ left: 0, top: 0, transformOrigin: '100% 50%' }}
-              initial={{ width: 0 }}
+              style={{ top: 200, transformOrigin: '100% 50%' }}
+              initial={{ width: 0, left: 200 }}
               animate={bottomLineControls}
             />
           </div>
 
-        </div>
       </div>
     </motion.div>
   );

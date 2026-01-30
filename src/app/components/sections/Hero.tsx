@@ -108,22 +108,22 @@ export function Hero() {
           >
             {snsLinks.threads && (
               <a href={snsLinks.threads} target="_blank" rel="noopener noreferrer" className="hover:opacity-60 transition-opacity">
-                <FaThreads className="w-6 h-6 md:w-7 md:h-7 2xl:w-8 2xl:h-8 text-black" />
+                <FaThreads className="w-8 h-8 md:w-7 md:h-7 2xl:w-8 2xl:h-8 text-black" />
               </a>
             )}
             {snsLinks.youtube && (
               <a href={snsLinks.youtube} target="_blank" rel="noopener noreferrer" className="hover:opacity-60 transition-opacity">
-                <FaYoutube className="w-6 h-6 md:w-7 md:h-7 2xl:w-8 2xl:h-8 text-black" />
+                <FaYoutube className="w-8 h-8 md:w-7 md:h-7 2xl:w-8 2xl:h-8 text-black" />
               </a>
             )}
             {snsLinks.github && (
               <a href={snsLinks.github} target="_blank" rel="noopener noreferrer" className="hover:opacity-60 transition-opacity">
-                <FaGithub className="w-6 h-6 md:w-7 md:h-7 2xl:w-8 2xl:h-8 text-black" />
+                <FaGithub className="w-8 h-8 md:w-7 md:h-7 2xl:w-8 2xl:h-8 text-black" />
               </a>
             )}
             {snsLinks.linkedin && (
               <a href={snsLinks.linkedin} target="_blank" rel="noopener noreferrer" className="hover:opacity-60 transition-opacity">
-                <FaLinkedin className="w-6 h-6 md:w-7 md:h-7 2xl:w-8 2xl:h-8 text-black" />
+                <FaLinkedin className="w-8 h-8 md:w-7 md:h-7 2xl:w-8 2xl:h-8 text-black" />
               </a>
             )}
           </motion.div>

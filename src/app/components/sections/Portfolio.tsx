@@ -989,10 +989,10 @@ export function Portfolio() {
                 <button
                   key={tag}
                   onClick={() => {
-                    setSelectedTags(prev => 
+                    setSelectedTags(
                       isSelected 
-                        ? prev.filter(t => t !== tag)  // Remove if already selected
-                        : [...prev, tag]  // Add if not selected
+                        ? []  // Deselect if already selected
+                        : [tag]  // Select only this tag (single selection)
                     );
                   }}
                   className={`px-4 py-2 2xl:px-6 2xl:py-3 text-xs md:text-sm 2xl:text-base font-medium rounded-full transition-all hover:scale-105 ${

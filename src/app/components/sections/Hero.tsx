@@ -43,13 +43,14 @@ export function Hero() {
         const response = await fetch(`${API_URL}/api/settings/sns`);
         if (response.ok) {
           const data = await response.json();
-          setSnsLinks({
-            threads: data.threads || '',
-            youtube: data.youtube || '',
-            github: data.github || '',
-            linkedin: data.linkedin || '',
-            email: data.email || ''
-          });
+          // API에서 값이 있을 때만 덮어쓰기, 없으면 기본값 유지
+          setSnsLinks(prev => ({
+            threads: data.threads || prev.threads,
+            youtube: data.youtube || prev.youtube,
+            github: data.github || prev.github,
+            linkedin: data.linkedin || prev.linkedin,
+            email: data.email || prev.email
+          }));
         }
       } catch (error) {
         console.log('Using default SNS links');

@@ -216,7 +216,6 @@ const generateColorData = (index: number) => {
 const ITEM_COUNT = 40;
 const ITEM_WIDTH = 60;
 const ITEM_WIDTH_MOBILE = 40; // 모바일에서 더 작은 너비
-const GAP = 10;
 const GAP_MOBILE = 6;
 const DESKTOP_RADIUS = 500;
 const LARGE_DESKTOP_RADIUS = 800;

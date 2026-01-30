@@ -98,10 +98,10 @@ export function Hero() {
       {/* Content Area */}
       <div className="flex-1 flex flex-col md:grid md:grid-cols-12 gap-4 md:gap-8 items-end relative mt-4 md:mt-0">
 
-        {/* SNS Logos - Left on Mobile, Left on Desktop */}
-        <div className="order-2 md:order-1 md:col-span-3 flex justify-start items-center gap-6 md:gap-5 lg:gap-6 pb-2 md:pb-0 w-full">
+        {/* SNS Logos - Center on Mobile, Left on Desktop */}
+        <div className="order-2 md:order-1 md:col-span-3 flex justify-center md:justify-start items-center gap-6 md:gap-5 lg:gap-6 pb-2 md:pb-0 w-full">
           <motion.div
-            className="flex gap-6 justify-start"
+            className="flex gap-6 justify-center md:justify-start"
             initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 1.4, duration: 1 }}

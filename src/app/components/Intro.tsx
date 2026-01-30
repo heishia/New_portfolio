@@ -7,6 +7,7 @@ interface IntroProps {
 
 export function Intro({ onComplete }: IntroProps) {
   const [isAnimationDone, setIsAnimationDone] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   const topLineControls = useAnimation();
   const bottomLineControls = useAnimation();
@@ -14,6 +15,16 @@ export function Intro({ onComplete }: IntroProps) {
   const ppopContainerBlueControls = useAnimation();
   const ppopContainerWhiteControls = useAnimation();
   const devContainerControls = useAnimation();
+
+  // 모바일 감지
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     const sequence = async () => {

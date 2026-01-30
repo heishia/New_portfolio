@@ -215,11 +215,13 @@ const generateColorData = (index: number) => {
 // --- Constants ---
 const ITEM_COUNT = 40;
 const ITEM_WIDTH = 60;
+const ITEM_WIDTH_MOBILE = 40; // 모바일에서 더 작은 너비
 const GAP = 10;
+const GAP_MOBILE = 6;
 const DESKTOP_RADIUS = 500;
 const LARGE_DESKTOP_RADIUS = 800;
-const MOBILE_VISIBLE_COUNT = 4;
-const MOBILE_RADIUS = (MOBILE_VISIBLE_COUNT * (ITEM_WIDTH + GAP)) / (2 * Math.PI);
+const MOBILE_VISIBLE_COUNT = 6;
+const MOBILE_RADIUS = (MOBILE_VISIBLE_COUNT * (ITEM_WIDTH_MOBILE + GAP_MOBILE)) / (2 * Math.PI) * 1.8; // 모바일에서 겹침 방지
 
 // --- Markdown Helper ---
 // 간단한 마크다운 변환 (bold만 지원)
@@ -827,7 +829,7 @@ export function Portfolio() {
       </div>
 
       {/* 3D Scene Container */}
-      <div className="relative flex-1 2xl:flex-none w-full flex items-start justify-center cursor-grab active:cursor-grabbing pt-8 md:pt-12 pb-8 md:pb-12 2xl:pt-8 2xl:pb-8">
+      <div className="relative flex-1 2xl:flex-none w-full flex items-start justify-center cursor-grab active:cursor-grabbing pt-4 md:pt-12 pb-4 md:pb-12 2xl:pt-8 2xl:pb-8 overflow-hidden">
         
         {/* Loading State */}
         {loading && (
@@ -841,10 +843,9 @@ export function Portfolio() {
 
         {/* Rotating Cylinder */}
         <motion.div
-          className="relative h-[55vh] md:h-[60vh] 2xl:h-[45vh] w-[60px]"
+          className="relative h-[45vh] md:h-[60vh] 2xl:h-[45vh] w-[40px] md:w-[60px]"
           style={{
             rotateY: smoothRotation,
-            scale: isMobile ? 1.5 : 1,
             opacity: loading ? 0.3 : 1,
             transformStyle: 'preserve-3d',
             pointerEvents: 'none',
@@ -868,6 +869,7 @@ export function Portfolio() {
                 project={project}
                 angle={angle}
                 radius={isMobile ? MOBILE_RADIUS : (isLargeDesktop ? LARGE_DESKTOP_RADIUS : DESKTOP_RADIUS)}
+                isMobile={isMobile}
                 onSelect={() => {
                   if (!hasMoved.current) {
                     setActiveProject(project);
@@ -1032,7 +1034,7 @@ export function Portfolio() {
           >
             <motion.div
               layoutId={`card-${activeProject.uniqueId}`}
-              className="bg-white w-full max-w-4xl h-[80vh] rounded-lg shadow-2xl overflow-hidden cursor-auto"
+              className="bg-white w-[calc(100%-2rem)] md:w-full max-w-4xl h-[85vh] md:h-[80vh] rounded-lg shadow-2xl overflow-hidden cursor-auto"
               onClick={(e) => e.stopPropagation()}
             >
               <AnimatePresence mode="wait">
@@ -1206,16 +1208,20 @@ export function Portfolio() {
   );
 }
 
-function Spine3D({ project, angle, radius, onSelect }: { project: ProjectDisplay, angle: number, radius: number, onSelect: () => void }) {
+function Spine3D({ project, angle, radius, isMobile, onSelect }: { project: ProjectDisplay, angle: number, radius: number, isMobile: boolean, onSelect: () => void }) {
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     onSelect();
   };
 
+  // 모바일에서 더 작은 크기 사용
+  const itemWidth = isMobile ? ITEM_WIDTH_MOBILE : ITEM_WIDTH;
+
   return (
     <div
-      className="absolute top-0 left-0 w-[60px] h-full group"
+      className="absolute top-0 left-0 h-full group"
       style={{
+        width: `${itemWidth}px`,
         transform: `rotateY(${angle}deg) translateZ(${radius}px)`,
         transformStyle: 'preserve-3d',
         backfaceVisibility: 'hidden',
@@ -1235,16 +1241,16 @@ function Spine3D({ project, angle, radius, onSelect }: { project: ProjectDisplay
           backgroundColor: project.spineColor,
         }}
       >
-        <div className="w-full h-full flex flex-col items-center justify-between py-6">
+        <div className="w-full h-full flex flex-col items-center justify-between py-4 md:py-6">
           <span
-            className="text-[10px] font-mono opacity-60"
+            className="text-[8px] md:text-[10px] font-mono opacity-60"
             style={{ color: project.textColor }}
           >
             {project.displayNumber < 10 ? `0${project.displayNumber}` : project.displayNumber}
           </span>
 
           <h4
-            className="text-lg font-bold tracking-wider flex-1 flex items-center justify-center text-center py-4"
+            className="text-sm md:text-lg font-bold tracking-wider flex-1 flex items-center justify-center text-center py-2 md:py-4"
             style={{
               writingMode: 'vertical-rl',
               color: project.textColor,
@@ -1256,7 +1262,7 @@ function Spine3D({ project, angle, radius, onSelect }: { project: ProjectDisplay
           </h4>
 
           <span
-            className="text-[10px] font-mono -rotate-90"
+            className="text-[8px] md:text-[10px] font-mono -rotate-90"
             style={{ color: project.textColor }}
           >
             {project.year}

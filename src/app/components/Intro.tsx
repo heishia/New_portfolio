@@ -235,32 +235,28 @@ export function Intro({ onComplete }: IntroProps) {
     >
       <div className="relative w-full h-screen flex items-center justify-center">
 
-        {/* 800px FIXED STAGE - scaled down for smaller screens */}
-        <div className="intro-stage relative w-[800px] h-[400px] flex items-center justify-center scale-[0.35] sm:scale-[0.4] md:scale-[0.5] lg:scale-[0.55] xl:scale-[0.6] 2xl:scale-[0.7]">
+        {/* 800px FIXED STAGE - 모바일 스케일 상향 조정 */}
+        <div className="intro-stage relative w-[800px] h-[400px] flex items-center justify-center scale-[0.4] sm:scale-[0.45] md:scale-[0.5] lg:scale-[0.55] xl:scale-[0.6] 2xl:scale-[0.7] transform-gpu">
 
-          {/* PPOP Layer - 텍스트를 정확히 200px~600px 영역에 배치 */}
+          {/* PPOP Layer */}
           <motion.div
-            className="absolute inset-0"
+            className="absolute inset-0 flex items-center justify-center"
             initial={{ opacity: 1, clipPath: 'inset(0 0 0 0)' }}
             animate={ppopContainerBlueControls}
           >
-            <div className="absolute left-[200px] top-1/2 -translate-y-1/2 w-[400px] flex items-center justify-center">
-              <h1 className="text-9xl font-bold tracking-tighter text-[#0044CC] whitespace-nowrap" style={{ fontFamily: 'Montserrat, sans-serif' }}>
-                PPOP
-              </h1>
-            </div>
+            <h1 className="text-9xl font-bold tracking-tighter text-[#0044CC]" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+              PPOP
+            </h1>
           </motion.div>
 
           <motion.div
-            className="absolute inset-0"
+            className="absolute inset-0 flex items-center justify-center"
             initial={{ opacity: 1, clipPath: 'inset(49% 75% 49% 25%)' }}
             animate={ppopContainerWhiteControls}
           >
-            <div className="absolute left-[200px] top-1/2 -translate-y-1/2 w-[400px] flex items-center justify-center">
-              <h1 className="text-9xl font-bold tracking-tighter text-white whitespace-nowrap" style={{ fontFamily: 'Montserrat, sans-serif' }}>
-                PPOP
-              </h1>
-            </div>
+            <h1 className="text-9xl font-bold tracking-tighter text-white" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+              PPOP
+            </h1>
           </motion.div>
 
           {/* Dev Layer */}

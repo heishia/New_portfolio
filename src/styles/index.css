@@ -2,6 +2,15 @@
 @import './tailwind.css';
 @import './theme.css';
 
+/* Hide scrollbar utility */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 @media (max-width: 768px) {
   .intro-stage {
     transform: scale(calc((100vw - 32px) / 800));

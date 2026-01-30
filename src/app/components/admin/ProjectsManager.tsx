@@ -34,6 +34,7 @@ interface Repository {
   screenshots: ScreenshotItem[];
   has_portfolio_meta: boolean;
   is_visible: boolean;
+  category: string;  // 웹, 모바일, 데스크탑 프로그램, 기타
 }
 
 interface RepositoryListResponse {
@@ -115,6 +116,34 @@ export default function ProjectsManager() {
       setTimeout(() => setSyncResult(null), 3000);
     } finally {
       setIsSyncing(false);
+    }
+  };
+
+  // 카테고리 옵션
+  const categoryOptions = ['웹', '모바일', '데스크탑 프로그램', '기타'] as const;
+
+  // 카테고리 업데이트
+  const handleUpdateCategory = async (projectId: number, category: string) => {
+    const token = localStorage.getItem('admin_token');
+    setSavingFor(projectId);
+
+    try {
+      const res = await fetch(`${API_BASE}/api/repos/${projectId}/category`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ category })
+      });
+
+      if (!res.ok) throw new Error('Update failed');
+      mutate();
+    } catch (error) {
+      console.error('Category update failed:', error);
+      alert('카테고리 변경에 실패했습니다.');
+    } finally {
+      setSavingFor(null);
     }
   };
 
@@ -382,6 +411,15 @@ export default function ProjectsManager() {
                     <h3 className="font-medium text-gray-900 truncate">
                       {project.title || project.name}
                     </h3>
+                    {/* 카테고리 뱃지 */}
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                      project.category === '웹' ? 'bg-blue-100 text-blue-700' :
+                      project.category === '모바일' ? 'bg-green-100 text-green-700' :
+                      project.category === '데스크탑 프로그램' ? 'bg-purple-100 text-purple-700' :
+                      'bg-gray-100 text-gray-600'
+                    }`}>
+                      {project.category || '기타'}
+                    </span>
                     {!project.is_visible && (
                       <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-200 text-gray-600">
                         숨김
@@ -456,6 +494,31 @@ export default function ProjectsManager() {
 
                   {!isProcessing && (
                     <>
+                      {/* 카테고리 선택 */}
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          카테고리
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                          {categoryOptions.map((cat) => (
+                            <button
+                              key={cat}
+                              onClick={() => handleUpdateCategory(project.id, cat)}
+                              className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                                project.category === cat
+                                  ? cat === '웹' ? 'bg-blue-600 text-white' :
+                                    cat === '모바일' ? 'bg-green-600 text-white' :
+                                    cat === '데스크탑 프로그램' ? 'bg-purple-600 text-white' :
+                                    'bg-gray-700 text-white'
+                                  : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                              }`}
+                            >
+                              {cat}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
                       {/* 업로드 영역 */}
                       <div
                         onDragOver={handleDragOver}

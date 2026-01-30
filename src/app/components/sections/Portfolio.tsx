@@ -81,6 +81,8 @@ interface Repository {
   technical_challenges: TechnicalChallenge[];
   key_achievements: string[];
   code_snippets: CodeSnippet[];
+  // Category for filtering (웹, 모바일, 데스크탑 프로그램, 기타)
+  category: string;
 }
 
 interface ProjectDisplay {
@@ -217,9 +219,6 @@ const ITEM_COUNT = 40;
 const ITEM_WIDTH = 60;
 const DESKTOP_RADIUS = 500;
 const LARGE_DESKTOP_RADIUS = 800;
-
-// 모바일 캐러셀 설정
-const MOBILE_ITEMS_PER_PAGE = 3; // 모바일에서 한 페이지당 보여줄 아이템 수
 
 // --- Markdown Helper ---
 // 간단한 마크다운 변환 (bold만 지원)
@@ -372,9 +371,6 @@ export function Portfolio() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [showDetail, setShowDetail] = useState(false);
   
-  // 모바일 캐러셀 상태
-  const [mobileCurrentPage, setMobileCurrentPage] = useState(0);
-  
   // Scroll position ref for modal open/close
   const savedScrollY = useRef(0);
   
@@ -390,121 +386,19 @@ export function Portfolio() {
       // Center the filtered results by resetting rotation
       rotation.set(0);
     }
-    // 모바일에서 필터 변경 시 첫 페이지로 이동
-    setMobileCurrentPage(0);
   }, [searchQuery, selectedTags]);
   
-  // Friendly tag names mapping (technical term -> consumer-friendly name)
-  const friendlyTagNames: Record<string, string> = {
-    // === 소비자 친화적 프로젝트 유형 ===
-    'web': '홈페이지',
-    'website': '홈페이지',
-    'homepage': '홈페이지',
-    'webapp': '웹앱',
-    'mobile': '모바일 어플',
-    'mobile-app': '모바일 어플',
-    'app': '모바일 어플',
-    'desktop': '프로그램',
-    'desktop-app': '프로그램',
-    'program': '프로그램',
-    'software': '프로그램',
-    'saas': 'SaaS',
-    'b2b': '회사 소프트웨어',
-    'enterprise': '회사 소프트웨어',
-    'ecommerce': '쇼핑몰/자사몰',
-    'shop': '쇼핑몰/자사몰',
-    'shopping': '쇼핑몰/자사몰',
-    'automation': '업무 자동화',
-    'cli': '오픈소스',
-    'tool': '오픈소스',
-    'api': '백엔드/API',
-    'backend': '백엔드/API',
-    'fullstack': '풀스택',
-    'landing': '랜딩페이지',
-    'dashboard': '대시보드',
-    'admin': '관리자 페이지',
-    'portfolio': '포트폴리오',
-    'blog': '블로그',
-    // === 유명 모바일 프레임워크 (일반인도 아는 것들) ===
-    'react-native': 'React Native',
-    'reactnative': 'React Native',
-    'flutter': 'Flutter',
-    'swift': 'iOS(Swift)',
-    'kotlin': 'Android(Kotlin)',
-    // === 유명 웹 프레임워크 ===
-    'react': 'React',
-    'nextjs': 'Next.js',
-    'next.js': 'Next.js',
-    'vue': 'Vue',
-    // === 주요 언어 (기술 관심자용) ===
-    'python': 'Python',
-    'typescript': 'TypeScript',
-    'go': 'Go',
-    'golang': 'Go',
+  // 4개 메인 카테고리 (관리자가 직접 설정)
+  const defaultTags = ['웹', '모바일', '데스크탑 프로그램', '기타'];
+
+  // Quick filter tags - 항상 4개 메인 카테고리만 표시
+  const quickFilterTags = defaultTags;
+  
+  // Get project's category from DB (set by admin)
+  const getProjectCategory = (repo: Repository): string => {
+    return repo.category || '기타';
   };
 
-  // Priority tags for better UX - 소비자/클라이언트가 이해하기 쉬운 순서
-  const priorityTags = [
-    // 1순위: 결과물 유형 (비개발자도 이해)
-    '모바일 어플', '홈페이지', '프로그램', '쇼핑몰/자사몰', 
-    'SaaS', '회사 소프트웨어', '업무 자동화', '대시보드',
-    // 2순위: 유명 모바일 프레임워크
-    'Flutter', 'React Native',
-    // 3순위: 주요 기술 (기술 관심자용)
-    'React', 'Next.js', 'Python', 'TypeScript'
-  ];
-
-  // 항상 표시할 기본 태그 (데이터와 무관하게 표시)
-  const defaultTags = ['자동화프로그램', '홈페이지', '쇼핑몰', '모바일앱', 'AI서비스', 'SaaS'];
-
-  // Extract unique tags for quick filters (tech stack + project types)
-  const quickFilterTags = React.useMemo(() => {
-    const tagCounts = new Map<string, number>();
-    
-    repositories.forEach(repo => {
-      // Count project types with friendly names
-      repo.project_type?.forEach(type => {
-        const lowerType = type.toLowerCase();
-        const friendlyName = friendlyTagNames[lowerType] || (type.charAt(0).toUpperCase() + type.slice(1).toLowerCase());
-        tagCounts.set(friendlyName, (tagCounts.get(friendlyName) || 0) + 1);
-      });
-      
-      // Count main language
-      if (repo.language) {
-        const lowerLang = repo.language.toLowerCase();
-        const friendlyName = friendlyTagNames[lowerLang] || repo.language;
-        tagCounts.set(friendlyName, (tagCounts.get(friendlyName) || 0) + 1);
-      }
-      
-      // Count popular technologies (only well-known ones)
-      repo.technologies?.forEach(tech => {
-        const lowerName = tech.name.toLowerCase();
-        if (friendlyTagNames[lowerName]) {
-          const friendlyName = friendlyTagNames[lowerName];
-          tagCounts.set(friendlyName, (tagCounts.get(friendlyName) || 0) + 1);
-        }
-      });
-    });
-    
-    // Sort data-based tags: priority tags first, then by count
-    const allTags = Array.from(tagCounts.entries());
-    const sortedTags = allTags.sort((a, b) => {
-      const aPriority = priorityTags.indexOf(a[0]);
-      const bPriority = priorityTags.indexOf(b[0]);
-      
-      if (aPriority !== -1 && bPriority !== -1) return aPriority - bPriority;
-      if (aPriority !== -1) return -1;
-      if (bPriority !== -1) return 1;
-      return b[1] - a[1];
-    });
-    
-    // 기본 태그 + 데이터 기반 태그 (중복 제거)
-    const dataTags = sortedTags.map(([tag]) => tag).filter(tag => !defaultTags.includes(tag));
-    const combined = [...defaultTags, ...dataTags];
-    
-    return combined.slice(0, 8);
-  }, [repositories]);
-  
   // Filtered projects based on search query AND selected tags
   const filteredProjects = React.useMemo(() => {
     // If no filters, return all
@@ -548,8 +442,14 @@ export function Portfolio() {
       // Check text search match
       const matchesQuery = !query || searchFields.some(field => field.includes(query));
       
-      // Check tag matches (project must match ALL selected tags)
-      const matchesTags = selectedTags.length === 0 || selectedTags.every(tag => {
+      // Check tag matches (4개 카테고리 매핑 기반)
+      const matchesTags = selectedTags.length === 0 || selectedTags.some(tag => {
+        // 선택된 태그가 4개 메인 카테고리 중 하나인 경우
+        if (defaultTags.includes(tag)) {
+          const projectCategory = getProjectCategory(repo);
+          return projectCategory === tag;
+        }
+        // 그 외의 경우 기존 검색 로직 사용
         const lowerTag = tag.toLowerCase();
         return searchFields.some(field => field.includes(lowerTag));
       });
@@ -909,9 +809,6 @@ export function Portfolio() {
           projects={filteredProjects}
           loading={loading}
           onSelectProject={(project) => setActiveProject(project)}
-          currentPage={mobileCurrentPage}
-          setCurrentPage={setMobileCurrentPage}
-          itemsPerPage={MOBILE_ITEMS_PER_PAGE}
         />
       )}
 
@@ -983,7 +880,7 @@ export function Portfolio() {
             transition={{ delay: 0.7, duration: 0.8 }}
             className="flex flex-wrap gap-2 justify-center mt-4"
           >
-            {(quickFilterTags.length > 0 ? quickFilterTags : ['자동화프로그램', '홈페이지', '쇼핑몰', '모바일앱', 'AI서비스', 'SaaS']).map((tag) => {
+            {(quickFilterTags.length > 0 ? quickFilterTags : ['웹', '모바일', '데스크탑 프로그램', '기타']).map((tag) => {
               const isSelected = selectedTags.includes(tag);
               return (
                 <button
@@ -1309,16 +1206,10 @@ function MobileCarousel({
   projects,
   loading,
   onSelectProject,
-  currentPage,
-  setCurrentPage,
-  itemsPerPage,
 }: {
   projects: ProjectDisplay[];
   loading: boolean;
   onSelectProject: (project: ProjectDisplay) => void;
-  currentPage: number;
-  setCurrentPage: (page: number) => void;
-  itemsPerPage: number;
 }) {
   // 중복 제거: 실제 repository 기반으로 unique projects만 표시
   const uniqueProjects = React.useMemo(() => {
@@ -1330,45 +1221,9 @@ function MobileCarousel({
     });
   }, [projects]);
 
-  const totalPages = Math.ceil(uniqueProjects.length / itemsPerPage);
-  const startIndex = currentPage * itemsPerPage;
-  const visibleProjects = uniqueProjects.slice(startIndex, startIndex + itemsPerPage);
-
-  // 터치 스와이프
-  const touchStartX = React.useRef(0);
-  const touchEndX = React.useRef(0);
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    touchEndX.current = e.touches[0].clientX;
-  };
-
-  const handleTouchEnd = () => {
-    const diff = touchStartX.current - touchEndX.current;
-    const threshold = 50;
-
-    if (diff > threshold && currentPage < totalPages - 1) {
-      // 왼쪽으로 스와이프 → 다음 페이지
-      setCurrentPage(currentPage + 1);
-    } else if (diff < -threshold && currentPage > 0) {
-      // 오른쪽으로 스와이프 → 이전 페이지
-      setCurrentPage(currentPage - 1);
-    }
-  };
-
-  // 페이지 변경 시 리셋 (필터링 등으로 페이지가 범위를 벗어날 때)
-  React.useEffect(() => {
-    if (currentPage >= totalPages && totalPages > 0) {
-      setCurrentPage(totalPages - 1);
-    }
-  }, [totalPages, currentPage, setCurrentPage]);
-
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center">
+      <div className="flex-1 flex items-center justify-center py-12">
         <div className="flex flex-col items-center gap-4">
           <RefreshCw className="w-8 h-8 animate-spin text-neutral-400" />
           <span className="text-sm text-neutral-500 font-mono">Loading projects...</span>
@@ -1378,91 +1233,43 @@ function MobileCarousel({
   }
 
   return (
-    <div className="flex-1 flex flex-col px-4 pt-4 pb-6">
-      {/* 캐러셀 영역 */}
+    <div className="flex-1 flex flex-col py-6">
+      {/* 연속 스크롤 캐러셀 */}
       <div
-        className="flex-1 overflow-hidden"
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
+        className="flex-1 overflow-x-auto overflow-y-hidden scrollbar-hide"
+        style={{
+          scrollSnapType: 'x proximity',
+          WebkitOverflowScrolling: 'touch',
+          scrollBehavior: 'smooth',
+        }}
       >
-        <motion.div
-          className="grid grid-cols-3 gap-3 h-full"
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          key={currentPage}
-          transition={{ duration: 0.3 }}
+        <div 
+          className="flex gap-4 px-6 items-stretch"
+          style={{ width: 'max-content' }}
         >
-          {visibleProjects.map((project) => (
-            <MobileProjectCard
-              key={project.uniqueId}
-              project={project}
-              onSelect={() => onSelectProject(project)}
-            />
+          {uniqueProjects.map((project) => (
+            <div 
+              key={project.uniqueId} 
+              className="flex-shrink-0"
+              style={{ 
+                width: 'calc((100vw - 80px) / 2.5)',
+                scrollSnapAlign: 'start',
+              }}
+            >
+              <MobileProjectCard
+                project={project}
+                onSelect={() => onSelectProject(project)}
+              />
+            </div>
           ))}
-          {/* 빈 슬롯 채우기 */}
-          {visibleProjects.length < itemsPerPage &&
-            Array.from({ length: itemsPerPage - visibleProjects.length }).map((_, i) => (
-              <div key={`empty-${i}`} className="aspect-[3/4] bg-neutral-100/50 rounded-xl" />
-            ))}
-        </motion.div>
+          {/* 마지막 여백 */}
+          <div className="flex-shrink-0 w-4" />
+        </div>
       </div>
 
-      {/* 페이지네이션 */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-4 mt-4">
-          {/* 이전 버튼 */}
-          <button
-            onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
-            disabled={currentPage === 0}
-            className="w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed transition-opacity"
-          >
-            <ChevronLeft className="w-5 h-5 text-neutral-700" />
-          </button>
-
-          {/* 페이지 인디케이터 */}
-          <div className="flex items-center gap-2">
-            {Array.from({ length: Math.min(totalPages, 7) }).map((_, i) => {
-              // 페이지가 많을 경우 현재 페이지 주변만 표시
-              let pageIndex = i;
-              if (totalPages > 7) {
-                if (currentPage < 4) {
-                  pageIndex = i;
-                } else if (currentPage > totalPages - 4) {
-                  pageIndex = totalPages - 7 + i;
-                } else {
-                  pageIndex = currentPage - 3 + i;
-                }
-              }
-
-              return (
-                <button
-                  key={pageIndex}
-                  onClick={() => setCurrentPage(pageIndex)}
-                  className={`w-2.5 h-2.5 rounded-full transition-all ${
-                    pageIndex === currentPage
-                      ? 'bg-neutral-800 scale-125'
-                      : 'bg-neutral-300 hover:bg-neutral-400'
-                  }`}
-                />
-              );
-            })}
-          </div>
-
-          {/* 다음 버튼 */}
-          <button
-            onClick={() => setCurrentPage(Math.min(totalPages - 1, currentPage + 1))}
-            disabled={currentPage === totalPages - 1}
-            className="w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed transition-opacity"
-          >
-            <ChevronRight className="w-5 h-5 text-neutral-700" />
-          </button>
-        </div>
-      )}
-
-      {/* 총 프로젝트 수 표시 */}
-      <p className="text-center text-xs text-neutral-400 mt-3 font-mono">
-        {uniqueProjects.length}개의 프로젝트 중 {startIndex + 1}-{Math.min(startIndex + itemsPerPage, uniqueProjects.length)}
+      {/* 프로젝트 수 표시 */}
+      <p className="text-center text-xs text-neutral-400 mt-4 font-mono px-6">
+        {uniqueProjects.length}개의 프로젝트
       </p>
     </div>
   );
@@ -1482,7 +1289,7 @@ function MobileProjectCard({
   return (
     <motion.button
       onClick={onSelect}
-      className="relative aspect-[3/4] rounded-xl overflow-hidden shadow-lg bg-white group"
+      className="relative w-full aspect-[3/4] rounded-xl overflow-hidden shadow-lg bg-white group"
       whileTap={{ scale: 0.98 }}
     >
       {/* 배경 이미지 또는 ppop placeholder */}

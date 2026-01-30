@@ -239,6 +239,7 @@ class RepositoryService:
             documentation_url=row["documentation_url"],
             cover_image=row.get("cover_image"),
             is_visible=row.get("is_visible", True),
+            category=row.get("category", "기타"),
             lines_of_code=row["lines_of_code"],
             commit_count=row["commit_count"],
             contributor_count=row["contributor_count"] or 1,

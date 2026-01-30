@@ -35,6 +35,10 @@ class UpdateVisibilityRequest(BaseModel):
     is_visible: bool
 
 
+class UpdateCategoryRequest(BaseModel):
+    category: str  # 웹, 모바일, 데스크탑 프로그램, 기타
+
+
 @router.get("/repos", response_model=RepositoryListResponse)
 async def get_repositories():
     """
@@ -287,3 +291,45 @@ async def update_visibility(
         )
     
     return {"success": True, "is_visible": request.is_visible}
+
+
+@router.put("/repos/{repo_id}/category")
+async def update_category(
+    repo_id: int,
+    request: UpdateCategoryRequest,
+    user: dict = Depends(get_current_user)
+):
+    """Update repository category (admin only)."""
+    # 유효한 카테고리인지 확인
+    valid_categories = ['웹', '모바일', '데스크탑 프로그램', '기타']
+    if request.category not in valid_categories:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Invalid category. Must be one of: {', '.join(valid_categories)}"
+        )
+    
+    pool = get_pool()
+    
+    async with pool.acquire() as conn:
+        # 레포지토리 존재 확인
+        exists = await conn.fetchval(
+            "SELECT 1 FROM repositories WHERE id = $1",
+            repo_id
+        )
+        
+        if not exists:
+            raise HTTPException(status_code=404, detail="Repository not found")
+        
+        # 업데이트
+        await conn.execute(
+            """
+            UPDATE repositories 
+            SET category = $2,
+                cached_at = NOW()
+            WHERE id = $1
+            """,
+            repo_id,
+            request.category
+        )
+    
+    return {"success": True, "category": request.category}

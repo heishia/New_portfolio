@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion } from 'motion/react';
 import { ArrowLeft, Send, User, Mail, Phone, Wallet } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 const OUTPUT_OPTIONS = [
   { id: 'website', label: '웹사이트' },
@@ -62,6 +63,10 @@ export default function StartProject() {
         throw new Error('Failed to submit');
       }
 
+      toast.success('담당자가 연락드릴 예정입니다', {
+        description: '요청이 성공적으로 전송되었습니다.',
+        duration: 4000,
+      });
       setIsSubmitted(true);
     } catch (error) {
       console.error('Submit error:', error);

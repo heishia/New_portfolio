@@ -176,6 +176,9 @@ class Repository(BaseModel):
     # Visibility for frontend (admin can toggle)
     is_visible: bool = True
     
+    # Manual category for filtering (웹, 모바일, 데스크탑 프로그램, 기타)
+    category: str = "기타"
+    
     # Metrics (from GitHub API or meta.json override)
     lines_of_code: Optional[int] = None
     commit_count: Optional[int] = None

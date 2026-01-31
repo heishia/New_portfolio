@@ -168,6 +168,37 @@ CREATE INDEX IF NOT EXISTS idx_admin_sessions_token ON admin_sessions(token);
 CREATE INDEX IF NOT EXISTS idx_admin_sessions_expires ON admin_sessions(expires_at);
 """
 
+# Migrations to apply after table creation
+MIGRATIONS_SQL = """
+-- Add category column if it doesn't exist
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'repositories' AND column_name = 'category'
+    ) THEN
+        ALTER TABLE repositories ADD COLUMN category VARCHAR(50) DEFAULT '기타';
+        
+        -- Update existing data based on project_type if available
+        UPDATE repositories 
+        SET category = CASE
+          WHEN 'web' = ANY(SELECT jsonb_array_elements_text(project_type)) 
+               OR 'website' = ANY(SELECT jsonb_array_elements_text(project_type))
+               OR 'homepage' = ANY(SELECT jsonb_array_elements_text(project_type)) THEN '웹'
+          WHEN 'mobile' = ANY(SELECT jsonb_array_elements_text(project_type))
+               OR 'app' = ANY(SELECT jsonb_array_elements_text(project_type)) THEN '모바일'
+          WHEN 'desktop' = ANY(SELECT jsonb_array_elements_text(project_type))
+               OR 'program' = ANY(SELECT jsonb_array_elements_text(project_type))
+               OR 'automation' = ANY(SELECT jsonb_array_elements_text(project_type)) THEN '데스크탑 프로그램'
+          ELSE '기타'
+        END
+        WHERE category IS NULL OR category = '기타';
+        
+        RAISE NOTICE 'Added category column to repositories table';
+    END IF;
+END $$;
+"""
+
 
 async def create_tables(pool: asyncpg.Pool) -> None:
     """Create database tables if they don't exist."""
@@ -175,6 +206,10 @@ async def create_tables(pool: asyncpg.Pool) -> None:
         try:
             await conn.execute(SCHEMA_SQL)
             print("Database tables created/verified successfully!")
+            
+            # Run migrations
+            await conn.execute(MIGRATIONS_SQL)
+            print("Database migrations applied successfully!")
         except Exception as e:
             print(f"Error creating tables: {e}")
             raise

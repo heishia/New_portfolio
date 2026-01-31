@@ -178,24 +178,31 @@ BEGIN
         WHERE table_name = 'repositories' AND column_name = 'category'
     ) THEN
         ALTER TABLE repositories ADD COLUMN category VARCHAR(50) DEFAULT '기타';
-        
-        -- Update existing data based on project_type if available
-        UPDATE repositories 
-        SET category = CASE
-          WHEN 'web' = ANY(SELECT jsonb_array_elements_text(project_type)) 
-               OR 'website' = ANY(SELECT jsonb_array_elements_text(project_type))
-               OR 'homepage' = ANY(SELECT jsonb_array_elements_text(project_type)) THEN '웹'
-          WHEN 'mobile' = ANY(SELECT jsonb_array_elements_text(project_type))
-               OR 'app' = ANY(SELECT jsonb_array_elements_text(project_type)) THEN '모바일'
-          WHEN 'desktop' = ANY(SELECT jsonb_array_elements_text(project_type))
-               OR 'program' = ANY(SELECT jsonb_array_elements_text(project_type))
-               OR 'automation' = ANY(SELECT jsonb_array_elements_text(project_type)) THEN '데스크탑 프로그램'
-          ELSE '기타'
-        END
-        WHERE category IS NULL OR category = '기타';
-        
         RAISE NOTICE 'Added category column to repositories table';
     END IF;
+    
+    -- Update existing data based on project_type if available (safely)
+    BEGIN
+        UPDATE repositories 
+        SET category = CASE
+          WHEN project_type IS NOT NULL 
+               AND jsonb_typeof(project_type) = 'array'
+               AND (project_type ? 'web' OR project_type ? 'website' OR project_type ? 'homepage'
+                    OR project_type @> '"web"' OR project_type @> '"website"' OR project_type @> '"homepage"') THEN '웹'
+          WHEN project_type IS NOT NULL 
+               AND jsonb_typeof(project_type) = 'array'
+               AND (project_type ? 'mobile' OR project_type ? 'app'
+                    OR project_type @> '"mobile"' OR project_type @> '"app"') THEN '모바일'
+          WHEN project_type IS NOT NULL 
+               AND jsonb_typeof(project_type) = 'array'
+               AND (project_type ? 'desktop' OR project_type ? 'program' OR project_type ? 'automation'
+                    OR project_type @> '"desktop"' OR project_type @> '"program"' OR project_type @> '"automation"') THEN '데스크탑 프로그램'
+          ELSE category
+        END
+        WHERE category IS NULL OR category = '기타';
+    EXCEPTION WHEN OTHERS THEN
+        RAISE NOTICE 'Could not auto-populate category from project_type: %', SQLERRM;
+    END;
 END $$;
 """
 

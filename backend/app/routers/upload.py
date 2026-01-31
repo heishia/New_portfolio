@@ -31,12 +31,19 @@ def get_s3_client():
     
     settings = get_settings()
     
+    # Railway Object Store는 https://storage.railway.app을 endpoint로 사용하고
+    # path-style addressing이 필요함
+    endpoint = settings.bucket_endpoint
+    if settings.bucket_name in endpoint:
+        # 버킷명이 포함된 endpoint면 기본 endpoint로 변경
+        endpoint = "https://storage.railway.app"
+    
     return boto3.client(
         "s3",
-        endpoint_url=settings.bucket_endpoint,
+        endpoint_url=endpoint,
         aws_access_key_id=settings.bucket_access_key_id,
         aws_secret_access_key=settings.bucket_secret_access_key,
-        config=Config(signature_version="s3v4"),
+        config=Config(signature_version="s3v4", s3={"addressing_style": "path"}),
         region_name="auto"
     )
 
